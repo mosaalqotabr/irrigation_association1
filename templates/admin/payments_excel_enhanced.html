@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المدفوعات الشهرية - واجهة Excel محسنة</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            direction: rtl;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .excel-container {
+            background: white;
+            margin: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .excel-header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 3px solid #0d47a1;
+        }
+        
+        .excel-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .excel-header p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .controls-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 140px;
+            border-top: 4px solid #2a5298;
+        }
+        
+        .stat-number {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .excel-table-wrapper {
+            overflow: auto;
+            max-height: 75vh;
+            border: 2px solid #dee2e6;
+            background: white;
+        }
+        
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: white;
+            min-width: 1200px;
+        }
+        
+        .excel-table th {
+            background: #e9ecef;
+            border: 1px solid #adb5bd;
+            padding: 10px 6px;
+            text-align: center;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            white-space: nowrap;
+            font-size: 12px;
+        }
+        
+        .excel-table td {
+            border: 1px solid #dee2e6;
+            padding: 6px 4px;
+            text-align: center;
+            position: relative;
+            min-width: 70px;
+            font-size: 12px;
+        }
+        
+        .excel-table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .excel-table tbody tr:hover {
+            background-color: #e3f2fd;
+        }
+        
+        /* تمييز الأعضاء الجدد والسابقين */
+        .new-member-row {
+            background-color: #e8f5e8 !important;
+            border-right: 4px solid #28a745;
+        }
+        
+        .old-member-row {
+            background-color: #fff3cd !important;
+            border-right: 4px solid #ffc107;
+        }
+        
+        /* تمييز المدفوعات حسب الصورة */
+        .payment-cell {
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .payment-paid {
+            background-color: #d4edda !important;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .payment-unpaid {
+            background-color: #f8d7da !important;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .payment-cell:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 5;
+        }
+        
+        .member-name-cell {
+            text-align: right;
+            padding-right: 8px;
+            font-weight: 500;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .member-number-cell {
+            font-weight: bold;
+            color: #2a5298;
+        }
+        
+        .membership-fee-cell {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .village-cell {
+            font-size: 11px;
+            color: #6c757d;
+        }
+        
+        .member-status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .status-new {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .status-old {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .month-header {
+            background: #6c757d !important;
+            color: white !important;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            min-width: 50px;
+            height: 60px;
+            font-size: 11px;
+        }
+        
+        .btn-excel {
+            background: #217346;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .btn-excel:hover {
+            background: #1a5c37;
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-spinner {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .success-flash {
+            animation: flash-success 0.6s ease-in-out;
+        }
+        
+        @keyframes flash-success {
+            0% { background-color: inherit; }
+            50% { background-color: #28a745; color: white; }
+            100% { background-color: inherit; }
+        }
+        
+        .total-row {
+            background: #343a40 !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        
+        .total-row td {
+            border-color: #495057 !important;
+        }
+        
+        @media (max-width: 768px) {
+            .excel-container {
+                margin: 5px;
+            }
+            
+            .excel-table {
+                font-size: 11px;
+                min-width: 800px;
+            }
+            
+            .excel-table th,
+            .excel-table td {
+                padding: 4px 2px;
+                min-width: 50px;
+            }
+            
+            .stats-row {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stat-card {
+                min-width: 120px;
+            }
+            
+            .action-buttons {
+                justify-content: center;
+            }
+        }
+        
+        /* تحسينات إضافية للمظهر */
+        .table-title {
+            background: #495057;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            border-bottom: 2px solid #343a40;
+        }
+        
+        .highlight-unpaid {
+            background-color: #ffebee !important;
+            border: 2px solid #f44336 !important;
+        }
+        
+        .highlight-paid {
+            background-color: #e8f5e8 !important;
+            border: 2px solid #4caf50 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+            <p class="mt-2">جاري معالجة البيانات...</p>
+        </div>
+    </div>
+
+    <div class="excel-container">
+        <div class="excel-header">
+            <h2><i class="fas fa-money-bill-wave"></i> إدارة المدفوعات الشهرية</h2>
+            <p>جمعية جنوب عزلةالشرف لمستخدمي المياه - واجهة Excel محسنة</p>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-members">{{ members|length }}</div>
+                    <div class="stat-label">إجمالي الأعضاء</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-membership-fees">{{ "%.0f"|format(total_membership_fees or 0) }}</div>
+                    <div class="stat-label">رسوم العضوية</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-monthly-payments">{{ "%.0f"|format(total_monthly_payments or 0) }}</div>
+                    <div class="stat-label">المدفوعات الشهرية</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-collected">{{ "%.0f"|format(total_collected or 0) }}</div>
+                    <div class="stat-label">إجمالي المحصل</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="collection-percentage">{{ "%.1f"|format(((total_collected or 0) / (total_expected or 1)) * 100) }}%</div>
+                    <div class="stat-label">نسبة التحصيل</div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-excel" onclick="saveAllChanges()">
+                    <i class="fas fa-save"></i> حفظ جميع التغييرات
+                </button>
+                <button class="btn btn-success" onclick="markAllPaid()">
+                    <i class="fas fa-check-circle"></i> تحديد الكل كمدفوع
+                </button>
+                <button class="btn btn-warning" onclick="markAllUnpaid()">
+                    <i class="fas fa-times-circle"></i> تحديد الكل كغير مدفوع
+                </button>
+                <button class="btn btn-info" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير إلى Excel
+                </button>
+                <button class="btn btn-secondary" onclick="printTable()">
+                    <i class="fas fa-print"></i> طباعة
+                </button>
+            </div>
+        </div>
+        
+        <div class="table-title">
+            صندوق جمعية جنوب عزلةالشرف لمستخدمي المياه (ذكور وإناث)
+        </div>
+        
+        <div class="excel-table-wrapper">
+            <table class="excel-table" id="paymentsTable">
+                <thead>
+                    <tr>
+                        <th rowspan="2">الرقم</th>
+                        <th rowspan="2">الاسم</th>
+                        <th rowspan="2">الحالة</th>
+                        <th rowspan="2">رسوم العضوية</th>
+                        <th colspan="9">المدفوعات الشهرية</th>
+                        <th rowspan="2">القرية</th>
+                    </tr>
+                    <tr>
+                        <th class="month-header">شهر 11<br>2024</th>
+                        <th class="month-header">شهر 12<br>2024</th>
+                        <th class="month-header">شهر 1<br>2025</th>
+                        <th class="month-header">شهر 2<br>2025</th>
+                        <th class="month-header">شهر 3<br>2025</th>
+                        <th class="month-header">شهر 4<br>2025</th>
+                        <th class="month-header">شهر 5<br>2025</th>
+                        <th class="month-header">شهر 6<br>2025</th>
+                        <th class="month-header">شهر 7<br>2025</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr class="{{ 'new-member-row' if member.is_new_member else 'old-member-row' }}" 
+                        data-member-id="{{ member.id }}">
+                        <td class="member-number-cell">{{ member.member_number }}</td>
+                        <td class="member-name-cell" title="{{ member.name }}">{{ member.name }}</td>
+                        <td>
+                            <span class="member-status-badge {{ 'status-new' if member.is_new_member else 'status-old' }}">
+                                {{ member.get_member_status() }}
+                            </span>
+                        </td>
+                        <td class="membership-fee-cell">{{ "%.0f"|format(member.membership_fee) }}</td>
+                        
+                        <!-- المدفوعات الشهرية -->
+                        {% set months = [(11, 2024), (12, 2024), (1, 2025), (2, 2025), (3, 2025), (4, 2025), (5, 2025), (6, 2025), (7, 2025)] %}
+                        {% for month, year in months %}
+                            {% set payment = member.get_payment_for_month(month, year) %}
+                            {% set is_paid = payment and payment.is_paid %}
+                            {% set amount = payment.amount if is_paid else 0 %}
+                            <td class="payment-cell {{ 'payment-paid' if is_paid else 'payment-unpaid' }}"
+                                data-member-id="{{ member.id }}" 
+                                data-month="{{ month }}" 
+                                data-year="{{ year }}"
+                                data-original-amount="{{ amount }}"
+                                onclick="togglePayment(this)"
+                                title="انقر لتغيير حالة الدفع">
+                                {{ amount }}
+                            </td>
+                        {% endfor %}
+                        
+                        <td class="village-cell">{{ member.village or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                    
+                    <!-- صف الإجماليات -->
+                    <tr class="total-row">
+                        <td colspan="3"><strong>الإجماليات</strong></td>
+                        <td><strong>{{ "%.0f"|format(total_membership_fees or 0) }}</strong></td>
+                        {% set months = [(11, 2024), (12, 2024), (1, 2025), (2, 2025), (3, 2025), (4, 2025), (5, 2025), (6, 2025), (7, 2025)] %}
+                        {% for month, year in months %}
+                            {% set month_total = members|sum(attribute='get_payment_for_month(' ~ month ~ ', ' ~ year ~ ').amount', start=0) if members else 0 %}
+                            <td><strong id="total-month-{{ month }}-{{ year }}">{{ "%.0f"|format(month_total) }}</strong></td>
+                        {% endfor %}
+                        <td><strong>-</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let pendingChanges = [];
+        let isProcessing = false;
+        
+        function togglePayment(cell) {
+            if (isProcessing) return;
+            
+            const memberId = cell.dataset.memberId;
+            const month = parseInt(cell.dataset.month);
+            const year = parseInt(cell.dataset.year);
+            const isPaid = cell.classList.contains('payment-paid');
+            
+            // تبديل الحالة
+            const newAmount = isPaid ? 0 : 1000;
+            const newStatus = !isPaid;
+            
+            // تحديث المظهر
+            cell.textContent = newAmount;
+            cell.classList.toggle('payment-paid', newStatus);
+            cell.classList.toggle('payment-unpaid', !newStatus);
+            cell.dataset.originalAmount = newAmount;
+            
+            // إضافة تأثير بصري
+            cell.classList.add('success-flash');
+            setTimeout(() => cell.classList.remove('success-flash'), 600);
+            
+            // إرسال التحديث للخادم
+            updatePayment(memberId, month, year, newAmount, newStatus);
+            
+            // تحديث الإجماليات
+            updateMonthTotal(month, year);
+            updateOverallStats();
+        }
+        
+        function updatePayment(memberId, month, year, amount, isPaid) {
+            isProcessing = true;
+            
+            fetch('/admin/api/payment/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    member_id: parseInt(memberId),
+                    month: month,
+                    year: year,
+                    amount: parseFloat(amount),
+                    is_paid: isPaid
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('تم تحديث المدفوعة بنجاح', 'success');
+                } else {
+                    showNotification('خطأ في تحديث المدفوعة: ' + data.message, 'error');
+                    // إعادة الحالة السابقة في حالة الخطأ
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                showNotification('خطأ في الاتصال', 'error');
+                console.error('Error:', error);
+                location.reload();
+            })
+            .finally(() => {
+                isProcessing = false;
+            });
+        }
+        
+        function updateMonthTotal(month, year) {
+            const monthCells = document.querySelectorAll(`[data-month="${month}"][data-year="${year}"]`);
+            let total = 0;
+            
+            monthCells.forEach(cell => {
+                if (cell.classList.contains('payment-paid')) {
+                    total += parseInt(cell.textContent) || 0;
+                }
+            });
+            
+            const totalCell = document.getElementById(`total-month-${month}-${year}`);
+            if (totalCell) {
+                totalCell.textContent = total.toLocaleString();
+            }
+        }
+        
+        function updateOverallStats() {
+            // حساب إجمالي المدفوعات الشهرية
+            const paidCells = document.querySelectorAll('.payment-paid');
+            let totalMonthlyPayments = 0;
+            
+            paidCells.forEach(cell => {
+                totalMonthlyPayments += parseInt(cell.textContent) || 0;
+            });
+            
+            // تحديث الإحصائيات
+            document.getElementById('total-monthly-payments').textContent = totalMonthlyPayments.toLocaleString();
+            
+            const membershipFees = parseInt(document.getElementById('total-membership-fees').textContent.replace(/,/g, '')) || 0;
+            const totalCollected = membershipFees + totalMonthlyPayments;
+            document.getElementById('total-collected').textContent = totalCollected.toLocaleString();
+            
+            // حساب نسبة التحصيل
+            const totalMembers = parseInt(document.getElementById('total-members').textContent) || 0;
+            const expectedTotal = membershipFees + (totalMembers * 9 * 1000); // 9 أشهر × 1000 ريال
+            const percentage = expectedTotal > 0 ? (totalCollected / expectedTotal * 100) : 0;
+            document.getElementById('collection-percentage').textContent = percentage.toFixed(1) + '%';
+        }
+        
+        function markAllPaid() {
+            if (!confirm('هل تريد تحديد جميع المدفوعات كمدفوعة؟')) return;
+            
+            showLoading(true);
+            const unpaidCells = document.querySelectorAll('.payment-unpaid');
+            
+            unpaidCells.forEach(cell => {
+                setTimeout(() => {
+                    cell.click();
+                }, Math.random() * 100);
+            });
+            
+            setTimeout(() => {
+                showLoading(false);
+                showNotification('تم تحديد جميع المدفوعات كمدفوعة', 'success');
+            }, 2000);
+        }
+        
+        function markAllUnpaid() {
+            if (!confirm('هل تريد تحديد جميع المدفوعات كغير مدفوعة؟')) return;
+            
+            showLoading(true);
+            const paidCells = document.querySelectorAll('.payment-paid');
+            
+            paidCells.forEach(cell => {
+                setTimeout(() => {
+                    cell.click();
+                }, Math.random() * 100);
+            });
+            
+            setTimeout(() => {
+                showLoading(false);
+                showNotification('تم تحديد جميع المدفوعات كغير مدفوعة', 'warning');
+            }, 2000);
+        }
+        
+        function saveAllChanges() {
+            showNotification('تم حفظ جميع التغييرات تلقائياً', 'success');
+        }
+        
+        function exportToExcel() {
+            showLoading(true);
+            window.location.href = '/admin/excel/export';
+            setTimeout(() => showLoading(false), 2000);
+        }
+        
+        function printTable() {
+            window.print();
+        }
+        
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+        
+        function showNotification(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'error' ? 'alert-danger' : 'alert-warning';
+            
+            const notification = document.createElement('div');
+            notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '10000';
+            notification.style.minWidth = '300px';
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 4000);
+        }
+        
+        // تحديث الإحصائيات عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            updateOverallStats();
+            
+            // إضافة تأثيرات تفاعلية
+            const paymentCells = document.querySelectorAll('.payment-cell');
+            paymentCells.forEach(cell => {
+                cell.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.02)';
+                });
+                
+                cell.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+        });
+        
+        // إضافة دعم لوحة المفاتيح
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveAllChanges();
+            }
+            
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                printTable();
+            }
+        });
+    </script>
+</body>
+</html>
+

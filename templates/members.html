@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}المشتركين - جمعية جنوب عزلةالشرف {% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-users text-blue-500 ml-2"></i>قائمة المشتركين
+                </h1>
+                <p class="text-gray-600">إجمالي المشتركين: {{ members|length }}</p>
+            </div>
+            
+            <!-- Export Buttons -->
+            <div class="flex items-center space-x-4 space-x-reverse">
+                <h1 class="text-3xl font-bold text-gray-800">قائمة المشتركين</h1>
+                <div class="flex space-x-2 space-x-reverse">
+                    <a href="{{ url_for('export_members_excel') }}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-file-excel mr-2"></i> تصدير Excel
+                    </a>
+                    <a href="{{ url_for('export_members_word') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-file-word mr-2"></i> تصدير Word
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8 no-print">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">البحث بالاسم</label>
+                <input type="text" id="searchName" placeholder="ابحث عن اسم المشترك..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">فلترة حسب القرية</label>
+                <select id="filterVillage" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">جميع القرى</option>
+                    {% set villages = [] %}
+                    {% for member in members %}
+                        {% if member.village not in villages %}
+                            {% set _ = villages.append(member.village) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% for village in villages %}
+                        <option value="{{ village }}">{{ village }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">فلترة حسب حالة الدفع</label>
+                <select id="filterPayment" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">الكل</option>
+                    <option value="paid">مدفوع</option>
+                    <option value="unpaid">غير مدفوع</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Table -->
+    <div class="bg-white rounded-lg card-shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full table-hover" id="membersTable">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رقم العضو</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الاسم</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">القرية</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رسوم العضوية</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">إجمالي المدفوع</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الأشهر غير المدفوعة</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for member in members %}
+                    <tr class="member-row" data-name="{{ member.name }}" data-village="{{ member.village }}" data-payment-status="{% if member.unpaid_months %}unpaid{% else %}paid{% endif %}">
+                        <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ member.number }}</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ member.name }}</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ member.village }}</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ "{:,.0f}".format(member.membership_fee) }} ريال</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ "{:,.0f}".format(member.total_paid) }} ريال</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm">
+                            {% if member.unpaid_months %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for month in member.unpaid_months %}
+                                        <span class="status-unpaid px-2 py-1 text-xs rounded-full">{{ month }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="status-paid px-2 py-1 text-xs rounded-full">مكتمل</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap">
+                            {% if member.unpaid_months %}
+                                <span class="status-unpaid px-2 py-1 text-xs rounded-full">
+                                    <i class="fas fa-exclamation-triangle ml-1"></i>متأخر
+                                </span>
+                            {% else %}
+                                <span class="status-paid px-2 py-1 text-xs rounded-full">
+                                    <i class="fas fa-check ml-1"></i>مكتمل
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div class="bg-white rounded-lg p-6 card-shadow">
+            <div class="flex items-center">
+                <div class="bg-green-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800" id="paidCount">0</h3>
+                    <p class="text-gray-600">مشتركين مكتملي الدفع</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow">
+            <div class="flex items-center">
+                <div class="bg-red-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800" id="unpaidCount">0</h3>
+                    <p class="text-gray-600">مشتركين متأخرين</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow">
+            <div class="flex items-center">
+                <div class="bg-blue-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-money-bill-wave text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800" id="totalAmount">0</h3>
+                    <p class="text-gray-600">إجمالي المدفوعات (ريال)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchName = document.getElementById('searchName');
+    const filterVillage = document.getElementById('filterVillage');
+    const filterPayment = document.getElementById('filterPayment');
+    const memberRows = document.querySelectorAll('.member-row');
+
+    function updateStatistics() {
+        const visibleRows = Array.from(memberRows).filter(row => row.style.display !== 'none');
+        const paidCount = visibleRows.filter(row => row.dataset.paymentStatus === 'paid').length;
+        const unpaidCount = visibleRows.filter(row => row.dataset.paymentStatus === 'unpaid').length;
+        
+        let totalAmount = 0;
+        visibleRows.forEach(row => {
+            const amountText = row.cells[4].textContent.replace(/[^\d]/g, '');
+            totalAmount += parseInt(amountText) || 0;
+        });
+
+        document.getElementById('paidCount').textContent = paidCount;
+        document.getElementById('unpaidCount').textContent = unpaidCount;
+        document.getElementById('totalAmount').textContent = totalAmount.toLocaleString();
+    }
+
+    function filterTable() {
+        const nameFilter = searchName.value.toLowerCase();
+        const villageFilter = filterVillage.value;
+        const paymentFilter = filterPayment.value;
+
+        memberRows.forEach(row => {
+            const name = row.dataset.name.toLowerCase();
+            const village = row.dataset.village;
+            const paymentStatus = row.dataset.paymentStatus;
+
+            const nameMatch = name.includes(nameFilter);
+            const villageMatch = !villageFilter || village === villageFilter;
+            const paymentMatch = !paymentFilter || paymentStatus === paymentFilter;
+
+            if (nameMatch && villageMatch && paymentMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        updateStatistics();
+    }
+
+    searchName.addEventListener('input', filterTable);
+    filterVillage.addEventListener('change', filterTable);
+    filterPayment.addEventListener('change', filterTable);
+
+    // Initial statistics update
+    updateStatistics();
+});
+</script>
+{% endblock %}
+

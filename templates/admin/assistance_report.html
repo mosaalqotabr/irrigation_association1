@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقارير المساعدات - جمعية جنوب عزلة الشرف</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+            .glass-card { background: white !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-4">
+        <!-- Header -->
+        <header class="glass-card rounded-lg shadow-xl p-6 mb-6">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2 flex items-center">
+                        <i class="fas fa-chart-bar text-blue-600 ml-3"></i>
+                        تقارير المساعدات والمساهمات
+                    </h1>
+                    <p class="text-gray-600">تحليل شامل للمساعدات المستلمة</p>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3 no-print">
+                    <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-print ml-2"></i>طباعة
+                    </button>
+                    <a href="{{ url_for('admin_assistance') }}" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-arrow-right ml-2"></i>العودة
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-hands-helping text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ stats.total_count }}</h3>
+                        <p class="text-gray-600">إجمالي المساعدات</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-blue-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-money-bill-wave text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(stats.total_amount) }}</h3>
+                        <p class="text-gray-600">القيمة الإجمالية (ريال)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-purple-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-calculator text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(stats.total_amount / stats.total_count if stats.total_count > 0 else 0) }}</h3>
+                        <p class="text-gray-600">متوسط قيمة المساعدة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Chart by Type -->
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-pie-chart text-blue-600 ml-3"></i>
+                    توزيع المساعدات حسب النوع
+                </h3>
+                <canvas id="typeChart" width="400" height="300"></canvas>
+            </div>
+
+            <!-- Chart by Year -->
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-chart-line text-green-600 ml-3"></i>
+                    المساعدات حسب السنة
+                </h3>
+                <canvas id="yearChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- Detailed Tables -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- By Type Table -->
+            <div class="glass-card rounded-lg shadow-xl overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4">
+                    <h3 class="text-xl font-bold flex items-center">
+                        <i class="fas fa-list ml-3"></i>
+                        تفصيل حسب النوع
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-right py-2">النوع</th>
+                                <th class="text-center py-2">العدد</th>
+                                <th class="text-center py-2">القيمة (ريال)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for type_name, type_data in stats.by_type.items() %}
+                            <tr class="border-b">
+                                <td class="py-2 font-medium">{{ type_name }}</td>
+                                <td class="text-center py-2">{{ type_data.count }}</td>
+                                <td class="text-center py-2 font-bold text-green-600">{{ "{:,.0f}".format(type_data.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- By Source Table -->
+            <div class="glass-card rounded-lg shadow-xl overflow-hidden">
+                <div class="bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-4">
+                    <h3 class="text-xl font-bold flex items-center">
+                        <i class="fas fa-building ml-3"></i>
+                        تفصيل حسب المصدر
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-right py-2">المصدر</th>
+                                <th class="text-center py-2">العدد</th>
+                                <th class="text-center py-2">القيمة (ريال)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for source_name, source_data in stats.by_source.items() %}
+                            <tr class="border-b">
+                                <td class="py-2 font-medium">{{ source_name }}</td>
+                                <td class="text-center py-2">{{ source_data.count }}</td>
+                                <td class="text-center py-2 font-bold text-green-600">{{ "{:,.0f}".format(source_data.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Assistance -->
+        <div class="glass-card rounded-lg shadow-xl overflow-hidden">
+            <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4">
+                <h3 class="text-xl font-bold flex items-center">
+                    <i class="fas fa-clock ml-3"></i>
+                    أحدث المساعدات
+                </h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">العنوان</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">المصدر</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">النوع</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">القيمة</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">التاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for assistance in assistances[:10] %}
+                        <tr>
+                            <td class="px-4 py-3 text-center text-sm font-medium">{{ assistance.title }}</td>
+                            <td class="px-4 py-3 text-center text-sm">{{ assistance.source }}</td>
+                            <td class="px-4 py-3 text-center text-sm">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                    {% if assistance.assistance_type == 'أصول ثابتة' %}bg-purple-100 text-purple-800
+                                    {% elif assistance.assistance_type == 'مبالغ مالية' %}bg-green-100 text-green-800
+                                    {% elif assistance.assistance_type == 'مشاريع' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ assistance.assistance_type }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm font-bold text-green-600">
+                                {{ "{:,.0f}".format(assistance.amount) }}
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm">
+                                {{ assistance.date_received.strftime('%Y-%m-%d') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart by Type
+        const typeCtx = document.getElementById('typeChart').getContext('2d');
+        const typeData = {
+            labels: [{% for type_name in stats.by_type.keys() %}'{{ type_name }}'{% if not loop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for type_data in stats.by_type.values() %}{{ type_data.amount }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: [
+                    '#8B5CF6',
+                    '#10B981',
+                    '#3B82F6',
+                    '#F59E0B',
+                    '#EF4444'
+                ]
+            }]
+        };
+
+        new Chart(typeCtx, {
+            type: 'doughnut',
+            data: typeData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Chart by Year
+        const yearCtx = document.getElementById('yearChart').getContext('2d');
+        const yearData = {
+            labels: [{% for year in stats.by_year.keys() %}{{ year }}{% if not loop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'قيمة المساعدات',
+                data: [{% for year_data in stats.by_year.values() %}{{ year_data.amount }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2,
+                fill: true
+            }]
+        };
+
+        new Chart(yearCtx, {
+            type: 'line',
+            data: yearData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+

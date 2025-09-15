@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}الملخص المالي - جمعية جنوب الشرف{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- العودة للوحة التحكم -->
+    <div class="mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right me-2"></i>العودة للوحة التحكم
+        </a>
+    </div>
+
+    <!-- عنوان الصفحة -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h2 class="card-title text-primary mb-2">
+                        <i class="fas fa-chart-line me-2"></i>الملخص المالي
+                    </h2>
+                    <p class="text-muted">تقرير شامل عن الوضع المالي للجمعية</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الإحصائيات العامة -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <div class="bg-primary rounded-circle p-3 me-3">
+                            <i class="fas fa-users text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ summary.total_members }}</h3>
+                            <small class="text-muted">إجمالي الأعضاء</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <div class="bg-success rounded-circle p-3 me-3">
+                            <i class="fas fa-money-bill text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ "{:,}".format(summary.total_membership_fees) }}</h3>
+                            <small class="text-muted">رسوم العضوية (ريال)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <div class="bg-info rounded-circle p-3 me-3">
+                            <i class="fas fa-hand-holding-usd text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ "{:,}".format(summary.total_collected) }}</h3>
+                            <small class="text-muted">إجمالي المحصل (ريال)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <div class="bg-warning rounded-circle p-3 me-3">
+                            <i class="fas fa-calculator text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ "{:,}".format(summary.total_expected) }}</h3>
+                            <small class="text-muted">المتوقع (ريال)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- المدفوعات الشهرية -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>المدفوعات الشهرية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الشهر</th>
+                                    <th>المبلغ المحصل</th>
+                                    <th>عدد المدفوعات المتوقعة</th>
+                                    <th>النسبة المئوية</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for month_name, amount in summary.monthly_totals.items() %}
+                                <tr>
+                                    <td>{{ month_name.replace('شهر', 'شهر ').strip() }}</td>
+                                    <td>{{ "{:,}".format(amount) }} ريال</td>
+                                    <td>{{ summary.total_members }} × 1000 = {{ "{:,}".format(summary.total_members * 1000) }} ريال</td>
+                                    <td>
+                                        {% set percentage = (amount / (summary.total_members * 1000) * 100) if summary.total_members > 0 else 0 %}
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-{{ 'success' if percentage >= 80 else 'warning' if percentage >= 50 else 'danger' }}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ percentage }}%"
+                                                 aria-valuenow="{{ percentage }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ "%.1f"|format(percentage) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أزرار الإجراءات -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('admin_export_excel') }}" class="btn btn-success btn-lg me-3">
+                <i class="fas fa-file-excel me-2"></i>تصدير إلى Excel
+            </a>
+            <a href="{{ url_for('admin_import_excel') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-upload me-2"></i>استيراد من Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.progress {
+    border-radius: 10px;
+}
+.progress-bar {
+    border-radius: 10px;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
+

@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - جمعية جنوب عزلة الشرف{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Welcome Header -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-tachometer-alt text-blue-500 ml-2"></i>لوحة التحكم
+                </h1>
+                <p class="text-gray-600">مرحباً بك في نظام إدارة جمعية جنوب عزلة الشرف لمستخدمي المياه</p>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-gray-500">آخر تحديث</p>
+                <p class="text-lg font-semibold text-gray-800">{{ moment().format('YYYY/MM/DD HH:mm') if moment else 'الآن' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-blue-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ stats.total_members }}</h3>
+                    <p class="text-gray-600">إجمالي المشتركين</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-green-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-money-bill-wave text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(stats.total_paid) }}</h3>
+                    <p class="text-gray-600">إجمالي المدفوعات (ريال)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-red-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-receipt text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(stats.total_expenses) }}</h3>
+                    <p class="text-gray-600">إجمالي المصروفات (ريال)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-{{ 'green' if stats.balance >= 0 else 'red' }}-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-balance-scale text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(stats.balance) }}</h3>
+                    <p class="text-gray-600">الرصيد الحالي (ريال)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="text-center">
+                <div class="bg-blue-100 text-blue-600 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <i class="fas fa-user-plus text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">إضافة مشترك</h3>
+                <p class="text-gray-600 text-sm mb-4">إضافة مشترك جديد للجمعية</p>
+                <button onclick="openAddMemberModal()" class="btn-primary text-white px-4 py-2 rounded-lg w-full hover:shadow-lg transition-all">
+                    إضافة الآن
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="text-center">
+                <div class="bg-green-100 text-green-600 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <i class="fas fa-project-diagram text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">إضافة مشروع</h3>
+                <p class="text-gray-600 text-sm mb-4">إضافة مشروع جديد للجمعية</p>
+                <button onclick="openAddProjectModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg w-full hover:bg-green-700 transition-colors">
+                    إضافة الآن
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="text-center">
+                <div class="bg-red-100 text-red-600 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <i class="fas fa-receipt text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">إضافة مصروف</h3>
+                <p class="text-gray-600 text-sm mb-4">تسجيل مصروف جديد</p>
+                <button onclick="openAddExpenseModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg w-full hover:bg-red-700 transition-colors">
+                    إضافة الآن
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="text-center">
+                <div class="bg-purple-100 text-purple-600 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <i class="fas fa-file-excel text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">رفع ملف Excel</h3>
+                <p class="text-gray-600 text-sm mb-4">تحديث البيانات من ملف Excel</p>
+                <button onclick="openUploadModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg w-full hover:bg-purple-700 transition-colors">
+                    رفع الآن
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Links -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <a href="{{ url_for('admin_members') }}" class="bg-white rounded-lg p-6 card-shadow hover-scale transition-all">
+            <div class="flex items-center">
+                <div class="bg-blue-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">إدارة المشتركين</h3>
+                    <p class="text-gray-600">عرض وتعديل بيانات المشتركين والمدفوعات</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('admin_projects') }}" class="bg-white rounded-lg p-6 card-shadow hover-scale transition-all">
+            <div class="flex items-center">
+                <div class="bg-green-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-project-diagram text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">إدارة المشاريع</h3>
+                    <p class="text-gray-600">عرض وتعديل مشاريع الجمعية</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('admin_expenses') }}" class="bg-white rounded-lg p-6 card-shadow hover-scale transition-all">
+            <div class="flex items-center">
+                <div class="bg-red-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-receipt text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">إدارة المصروفات</h3>
+                    <p class="text-gray-600">عرض وتعديل مصروفات الجمعية</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('admin_assistance') }}" class="bg-white rounded-lg p-6 card-shadow hover-scale transition-all">
+            <div class="flex items-center">
+                <div class="bg-teal-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-hands-helping text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">المساعدات والمساهمات</h3>
+                    <p class="text-gray-600">إدارة المساعدات والإعانات المستلمة</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('admin_spoilage') }}" class="bg-white rounded-lg p-6 card-shadow hover-scale transition-all">
+            <div class="flex items-center">
+                <div class="bg-orange-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">إدارة التوالف</h3>
+                    <p class="text-gray-600">تسجيل التوالف وخصمها من الأصول</p>
+                    <small class="text-red-500 block"><i class="fas fa-eye-slash"></i> مخفي عن الزوار</small>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('admin_assets') }}" class="bg-white rounded-lg p-6 card-shadow hover-scale transition-all">
+            <div class="flex items-center">
+                <div class="bg-purple-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-building text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">إدارة الأصول</h3>
+                    <p class="text-gray-600">متابعة الأصول الثابتة والاستهلاك</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Unpaid Members Alert -->
+    {% if unpaid_members %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+        <div class="flex items-center mb-4">
+            <div class="bg-yellow-500 text-white p-2 rounded-full ml-3">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-yellow-800">تنبيه: مشتركين متأخرين في الدفع</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for member in unpaid_members[:6] %}
+            <div class="bg-white p-4 rounded-lg border">
+                <h4 class="font-semibold text-gray-800">{{ member.name }}</h4>
+                <p class="text-sm text-gray-600">الأشهر المتأخرة: {{ member.unpaid_months|join(', ') }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% if unpaid_members|length > 6 %}
+        <p class="text-sm text-yellow-700 mt-4">وهناك {{ unpaid_members|length - 6 }} مشترك آخر متأخر في الدفع</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Export Options -->
+    <div class="bg-white rounded-lg p-6 card-shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-download text-blue-500 ml-2"></i>تصدير البيانات
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{{ url_for('export_members_excel') }}" class="bg-green-600 text-white p-4 rounded-lg text-center hover:bg-green-700 transition-colors">
+                <i class="fas fa-file-excel text-2xl mb-2"></i>
+                <p class="font-semibold">تصدير Excel</p>
+                <p class="text-sm opacity-90">تصدير جميع البيانات</p>
+            </a>
+            <a href="{{ url_for('export_members_word') }}" class="bg-blue-600 text-white p-4 rounded-lg text-center hover:bg-blue-700 transition-colors">
+                <i class="fas fa-file-word text-2xl mb-2"></i>
+                <p class="font-semibold">تصدير Word</p>
+                <p class="text-sm opacity-90">تقرير المشتركين</p>
+            </a>
+            <a href="{{ url_for('export_members_pdf') }}" class="bg-red-600 text-white p-4 rounded-lg text-center hover:bg-red-700 transition-colors">
+                <i class="fas fa-file-pdf text-2xl mb-2"></i>
+                <p class="font-semibold">تصدير PDF</p>
+                <p class="text-sm opacity-90">تقرير مطبوع</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- Reports and Exports -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">التقارير والتصدير</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- تصدير بيانات المشتركين -->
+            <a href="{{ url_for('export_members_excel') }}" class="bg-green-600 text-white p-4 rounded-lg text-center hover:bg-green-700 transition-colors">
+                <i class="fas fa-file-excel text-3xl mb-2"></i>
+                <p>تصدير بيانات المشتركين (Excel)</p>
+            </a>
+
+            <!-- تقرير المدفوعات -->
+            <a href="{{ url_for('export_payments_report') }}" class="bg-blue-600 text-white p-4 rounded-lg text-center hover:bg-blue-700 transition-colors">
+                <i class="fas fa-file-invoice-dollar text-3xl mb-2"></i>
+                <p>تقرير المدفوعات</p>
+            </a>
+
+            <!-- تقرير المصروفات -->
+            <a href="{{ url_for('export_expenses_report') }}" class="bg-red-600 text-white p-4 rounded-lg text-center hover:bg-red-700 transition-colors">
+                <i class="fas fa-file-receipt text-3xl mb-2"></i>
+                <p>تقرير المصروفات</p>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div id="addMemberModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">إضافة مشترك جديد</h3>
+                <button onclick="closeAddMemberModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{{ url_for('add_member') }}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">رقم العضو</label>
+                    <input type="number" name="member_number" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
+                    <input type="text" name="name" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">القرية</label>
+                    <input type="text" name="village" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">رسوم العضوية (ريال)</label>
+                    <input type="number" name="membership_fee" value="5000" min="0" step="0.01"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="flex space-x-3 space-x-reverse">
+                    <button type="submit" class="flex-1 btn-primary text-white py-2 rounded-lg font-semibold hover:shadow-lg transition-all">
+                        <i class="fas fa-save ml-2"></i>حفظ
+                    </button>
+                    <button type="button" onclick="closeAddMemberModal()" class="flex-1 bg-gray-500 text-white py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Project Modal -->
+<div id="addProjectModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">إضافة مشروع جديد</h3>
+                <button onclick="closeAddProjectModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{{ url_for('add_project') }}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">عنوان المشروع</label>
+                    <input type="text" name="title" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">وصف المشروع</label>
+                    <textarea name="description" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">التكلفة المتوقعة (ريال)</label>
+                    <input type="number" name="cost" min="0" step="0.01" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="flex space-x-3 space-x-reverse">
+                    <button type="submit" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                        <i class="fas fa-save ml-2"></i>حفظ
+                    </button>
+                    <button type="button" onclick="closeAddProjectModal()" class="flex-1 bg-gray-500 text-white py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div id="addExpenseModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">إضافة مصروف جديد</h3>
+                <button onclick="closeAddExpenseModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{{ url_for('add_expense') }}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">وصف المصروف</label>
+                    <input type="text" name="description" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">المبلغ (ريال)</label>
+                    <input type="number" name="amount" min="0" step="0.01" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">الفئة</label>
+                    <select name="category" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">اختر الفئة</option>
+                        <option value="صيانة">صيانة</option>
+                        <option value="وقود">وقود</option>
+                        <option value="مواد">مواد</option>
+                        <option value="أجور">أجور</option>
+                        <option value="مكتب">مكتب</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">التاريخ</label>
+                    <input type="date" name="date" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="flex space-x-3 space-x-reverse">
+                    <button type="submit" class="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors">
+                        <i class="fas fa-save ml-2"></i>حفظ
+                    </button>
+                    <button type="button" onclick="closeAddExpenseModal()" class="flex-1 bg-gray-500 text-white py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Excel Modal -->
+<div id="uploadModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">رفع ملف Excel</h3>
+                <button onclick="closeUploadModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{{ url_for('upload_excel') }}" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">اختر ملف Excel</label>
+                    <input type="file" name="file" accept=".xlsx,.xls" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-6">
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-info-circle ml-1"></i>
+                            تأكد من أن الملف يحتوي على الأعمدة المطلوبة: الرقم، الاسم، القرية، وأعمدة الأشهر
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3 space-x-reverse">
+                    <button type="submit" class="flex-1 bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-upload ml-2"></i>رفع
+                    </button>
+                    <button type="button" onclick="closeUploadModal()" class="flex-1 bg-gray-500 text-white py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAddMemberModal() {
+    document.getElementById('addMemberModal').classList.remove('hidden');
+}
+
+function closeAddMemberModal() {
+    document.getElementById('addMemberModal').classList.add('hidden');
+}
+
+function openAddProjectModal() {
+    document.getElementById('addProjectModal').classList.remove('hidden');
+}
+
+function closeAddProjectModal() {
+    document.getElementById('addProjectModal').classList.add('hidden');
+}
+
+function openAddExpenseModal() {
+    document.getElementById('addExpenseModal').classList.remove('hidden');
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('#addExpenseModal input[name="date"]').value = today;
+}
+
+function closeAddExpenseModal() {
+    document.getElementById('addExpenseModal').classList.add('hidden');
+}
+
+function openUploadModal() {
+    document.getElementById('uploadModal').classList.remove('hidden');
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').classList.add('hidden');
+}
+</script>
+{% endblock %}
+

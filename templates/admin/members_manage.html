@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المشتركين - جمعية جنوب عزلة الشرف</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .member-row input {
+            background: transparent;
+            transition: background-color 0.2s;
+        }
+        .member-row input:focus {
+            background-color: #f0f9ff;
+        }
+        .member-row:hover {
+            background-color: #f8fafc;
+        }
+        .payment-checkbox:checked + span {
+            color: #10b981;
+            font-weight: bold;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        td, th {
+            border: 1px solid #e5e7eb;
+        }
+        .year-tab {
+            transition: all 0.3s ease;
+        }
+        .year-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .year-tab:hover:not(.active) {
+            background-color: #f3f4f6;
+            transform: translateY(-1px);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+            .glass-card { background: white !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-4">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="fixed top-4 left-4 right-4 z-50 space-y-2">
+                    {% for category, message in messages %}
+                        <div class="alert p-4 rounded-lg shadow-lg flex justify-between items-center
+                            {% if category == 'success' %}bg-green-100 border border-green-400 text-green-700
+                            {% elif category == 'error' %}bg-red-100 border border-red-400 text-red-700
+                            {% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
+                            <span class="flex items-center">
+                                {% if category == 'success' %}
+                                    <i class="fas fa-check-circle ml-2"></i>
+                                {% elif category == 'error' %}
+                                    <i class="fas fa-exclamation-circle ml-2"></i>
+                                {% else %}
+                                    <i class="fas fa-info-circle ml-2"></i>
+                                {% endif %}
+                                {{ message }}
+                            </span>
+                            <button type="button" class="text-current opacity-70 hover:opacity-100" onclick="this.parentElement.remove();">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Header -->
+        <header class="glass-card rounded-lg shadow-xl p-6 mb-6">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2 flex items-center">
+                        <i class="fas fa-users text-blue-600 ml-3"></i>
+                        إدارة المشتركين
+                    </h1>
+                    <p class="text-gray-600">إجمالي المشتركين: {{ members|length }}</p>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3 no-print">
+                    <button onclick="openAddMemberModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-user-plus ml-2"></i>إضافة مشترك
+                    </button>
+                    <button onclick="saveChanges()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-save ml-2"></i>حفظ التغييرات
+                    </button>
+                    <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-print ml-2"></i>طباعة
+                    </button>
+                    <a href="{{ url_for('admin_dashboard') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-arrow-right ml-2"></i>العودة
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Year Selection Tabs -->
+        <div class="glass-card rounded-lg shadow-xl p-6 mb-6 no-print">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-calendar-alt text-blue-600 ml-3"></i>
+                اختيار السنة
+            </h2>
+            <div class="flex flex-wrap gap-2">
+                {% for year in range(2020, 2041) %}
+                <button onclick="changeYear({{ year }})" 
+                        class="year-tab px-4 py-2 rounded-lg font-medium transition-all
+                        {% if year == current_year %}active{% else %}bg-white hover:bg-gray-50{% endif %}"
+                        data-year="{{ year }}">
+                    {{ year }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Excel-like Table -->
+        <div class="glass-card rounded-lg shadow-xl overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4">
+                <h3 class="text-xl font-bold flex items-center">
+                    <i class="fas fa-table ml-3"></i>
+                    جدول المشتركين - سنة {{ current_year }}
+                </h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full" id="membersTable">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border">رقم العضو</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border">الاسم</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border">القرية</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border">رسوم العضوية</th>
+                            
+                            <!-- أشهر السنة المحددة -->
+                            {% for month_num in range(1, 13) %}
+                            {% set month_names = ['', 'شهر1', 'شهر2', 'شهر3', 'شهر4', 'شهر5', 'شهر6', 'شهر7', 'شهر8', 'شهر9', 'شهر10', 'شهر11', 'شهر12'] %}
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border">{{ month_names[month_num] }}</th>
+                            {% endfor %}
+                            
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border no-print">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="membersTableBody">
+                        {% for member in members %}
+                        <tr class="member-row hover:bg-gray-50" data-member-id="{{ member.id }}">
+                            <td class="px-2 py-2 text-center text-sm border">
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    {{ member.member_number }}
+                                </span>
+                            </td>
+                            <td class="px-2 py-2 text-center text-sm border">
+                                <input type="text" value="{{ member.name }}" 
+                                       class="w-full text-center border-0 focus:ring-0 member-name font-medium" 
+                                       data-field="name">
+                            </td>
+                            <td class="px-2 py-2 text-center text-sm border">
+                                <input type="text" value="{{ member.village or '' }}" 
+                                       class="w-full text-center border-0 focus:ring-0 member-village" 
+                                       data-field="village">
+                            </td>
+                            <td class="px-2 py-2 text-center text-sm border">
+                                <input type="number" value="{{ member.membership_fee }}" 
+                                       class="w-full text-center border-0 focus:ring-0 member-fee" 
+                                       data-field="membership_fee" step="0.01">
+                            </td>
+                            
+                            <!-- خانات الأشهر -->
+                            {% for month_num in range(1, 13) %}
+                            <td class="px-2 py-2 text-center text-sm border">
+                                {% set payment = member.get_payment_for_month(month_num, current_year) %}
+                                <div class="flex items-center justify-center">
+                                    <input type="checkbox" 
+                                           class="payment-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                           data-member-id="{{ member.id }}"
+                                           data-month="{{ month_num }}"
+                                           data-year="{{ current_year }}"
+                                           {{ 'checked' if payment and payment.is_paid else '' }}>
+                                    <span class="ml-1 text-xs">{{ payment.amount if payment else 1000 }}</span>
+                                </div>
+                            </td>
+                            {% endfor %}
+                            
+                            <td class="px-2 py-2 text-center text-sm border no-print">
+                                <button onclick="deleteMember({{ member.id }})" 
+                                        class="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-blue-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-users text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ members|length }}</h3>
+                        <p class="text-gray-600">إجمالي المشتركين</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-check-circle text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800" id="paidCount">0</h3>
+                        <p class="text-gray-600">مدفوعات مكتملة</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-red-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-exclamation-triangle text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800" id="unpaidCount">0</h3>
+                        <p class="text-gray-600">مدفوعات متأخرة</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-purple-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-money-bill-wave text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800" id="totalAmount">0</h3>
+                        <p class="text-gray-600">إجمالي المدفوعات (ريال)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div id="addMemberModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">إضافة مشترك جديد</h3>
+                    <button onclick="closeAddMemberModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form method="POST" action="{{ url_for('add_member') }}">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">رقم العضو</label>
+                        <input type="number" name="member_number" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
+                        <input type="text" name="name" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">القرية</label>
+                        <input type="text" name="village" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">رسوم العضوية (ريال)</label>
+                        <input type="number" name="membership_fee" value="5000" min="0" step="0.01"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition-all">
+                            <i class="fas fa-save ml-2"></i>حفظ
+                        </button>
+                        <button type="button" onclick="closeAddMemberModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold transition-all">
+                            إلغاء
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="bg-white rounded-lg p-6 text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">جاري حفظ التغييرات...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let changedPayments = new Set();
+        let changedMembers = new Set();
+        let currentYear = {{ current_year }};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // إخفاء رسائل التنبيه بعد 5 ثوان
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 300);
+                });
+            }, 5000);
+
+            // تتبع تغييرات المدفوعات
+            document.querySelectorAll('.payment-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const memberId = this.dataset.memberId;
+                    const month = this.dataset.month;
+                    const year = this.dataset.year;
+                    const key = `${memberId}_${month}_${year}`;
+                    
+                    changedPayments.add(key);
+                    updateStatistics();
+                });
+            });
+
+            // تتبع تغييرات بيانات المشتركين
+            document.querySelectorAll('input[data-field]').forEach(input => {
+                input.addEventListener('change', function() {
+                    const row = this.closest('.member-row');
+                    const memberId = row.dataset.memberId;
+                    changedMembers.add(memberId);
+                });
+            });
+
+            updateStatistics();
+        });
+
+        function changeYear(year) {
+            if (year === currentYear) return;
+            
+            // تحديث الأزرار
+            document.querySelectorAll('.year-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (parseInt(tab.dataset.year) === year) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // إعادة توجيه لنفس الصفحة مع السنة الجديدة
+            window.location.href = `{{ url_for('admin_members') }}?year=${year}`;
+        }
+
+        function updateStatistics() {
+            const checkboxes = document.querySelectorAll('.payment-checkbox');
+            let paidCount = 0;
+            let unpaidCount = 0;
+            let totalAmount = 0;
+
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    paidCount++;
+                    const amountSpan = checkbox.nextElementSibling;
+                    const amount = parseInt(amountSpan.textContent) || 0;
+                    totalAmount += amount;
+                } else {
+                    unpaidCount++;
+                }
+            });
+
+            document.getElementById('paidCount').textContent = paidCount;
+            document.getElementById('unpaidCount').textContent = unpaidCount;
+            document.getElementById('totalAmount').textContent = totalAmount.toLocaleString();
+        }
+
+        function saveChanges() {
+            const changes = [];
+            
+            // حفظ تغييرات المدفوعات
+            changedPayments.forEach(key => {
+                const [memberId, month, year] = key.split('_');
+                const checkbox = document.querySelector(`input[data-member-id="${memberId}"][data-month="${month}"][data-year="${year}"]`);
+                
+                changes.push({
+                    type: 'payment',
+                    member_id: parseInt(memberId),
+                    month: parseInt(month),
+                    year: parseInt(year),
+                    is_paid: checkbox.checked
+                });
+            });
+
+            // حفظ تغييرات بيانات المشتركين
+            changedMembers.forEach(memberId => {
+                const row = document.querySelector(`tr[data-member-id="${memberId}"]`);
+                const memberData = {
+                    type: 'member',
+                    id: parseInt(memberId),
+                    name: row.querySelector('.member-name').value,
+                    village: row.querySelector('.member-village').value,
+                    membership_fee: parseFloat(row.querySelector('.member-fee').value)
+                };
+                changes.push(memberData);
+            });
+
+            if (changes.length === 0) {
+                showMessage('لا توجد تغييرات للحفظ', 'info');
+                return;
+            }
+
+            // إظهار شاشة التحميل
+            document.getElementById('loadingModal').classList.remove('hidden');
+
+            // إرسال التغييرات إلى الخادم
+            fetch('{{ url_for("save_changes") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({changes: changes})
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingModal').classList.add('hidden');
+                
+                if (data.success) {
+                    showMessage('تم حفظ التغييرات بنجاح', 'success');
+                    changedPayments.clear();
+                    changedMembers.clear();
+                } else {
+                    showMessage('حدث خطأ في حفظ التغييرات: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingModal').classList.add('hidden');
+                console.error('Error:', error);
+                showMessage('حدث خطأ في الاتصال بالخادم', 'error');
+            });
+        }
+
+        function deleteMember(memberId) {
+            if (confirm('هل أنت متأكد من حذف هذا المشترك؟ سيتم حذف جميع مدفوعاته أيضاً.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `{{ url_for('delete_member', member_id=0) }}`.replace('0', memberId);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function openAddMemberModal() {
+            document.getElementById('addMemberModal').classList.remove('hidden');
+        }
+
+        function closeAddMemberModal() {
+            document.getElementById('addMemberModal').classList.add('hidden');
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' : 
+                type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+                'bg-blue-100 border border-blue-400 text-blue-700'
+            }`;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

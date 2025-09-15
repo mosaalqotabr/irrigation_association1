@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقارير المصروفات - جمعية جنوب عزلة الشرف</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold">تقارير المصروفات</h1>
+                    <div class="flex gap-4">
+                        <button onclick="exportReport()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors">
+                            تصدير التقرير
+                        </button>
+                        <a href="{{ url_for('admin_expenses') }}" class="bg-blue-500 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">
+                            العودة للمصروفات
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- إحصائيات عامة -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-red-100 text-red-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                        <div class="mr-4">
+                            <p class="text-sm font-medium text-gray-600">إجمالي المصروفات</p>
+                            <p class="text-2xl font-semibold text-gray-900">{{ "{:,.0f}".format(total_expenses) }} ريال</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div class="mr-4">
+                            <p class="text-sm font-medium text-gray-600">عدد الفئات</p>
+                            <p class="text-2xl font-semibold text-gray-900">{{ category_expenses|length }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 text-green-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="mr-4">
+                            <p class="text-sm font-medium text-gray-600">عدد الأشهر</p>
+                            <p class="text-2xl font-semibold text-gray-900">{{ monthly_expenses|length }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- تقرير شهري -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">المصروفات الشهرية</h2>
+                    <div class="h-64">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        {% for month, total in monthly_expenses %}
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span class="font-medium">{{ month }}</span>
+                            <span class="text-blue-600 font-semibold">{{ "{:,.0f}".format(total) }} ريال</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- تقرير حسب الفئة -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">المصروفات حسب الفئة</h2>
+                    <div class="h-64">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        {% for category, total in category_expenses %}
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span class="font-medium">{{ category or 'أخرى' }}</span>
+                            <span class="text-green-600 font-semibold">{{ "{:,.0f}".format(total) }} ريال</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- تقرير مفصل -->
+            <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">تحليل مفصل</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- أعلى الفئات إنفاقاً -->
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-700">أعلى الفئات إنفاقاً</h3>
+                        <div class="space-y-3">
+                            {% for category, total in category_expenses[:5] %}
+                            <div class="flex items-center">
+                                <div class="w-full bg-gray-200 rounded-full h-2 mr-3">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ (total / total_expenses * 100) if total_expenses > 0 else 0 }}%"></div>
+                                </div>
+                                <div class="text-sm">
+                                    <span class="font-medium">{{ category or 'أخرى' }}</span>
+                                    <span class="text-gray-600">({{ "{:.1f}".format((total / total_expenses * 100) if total_expenses > 0 else 0) }}%)</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- متوسط الإنفاق -->
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-700">متوسط الإنفاق</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                                <span>متوسط الإنفاق الشهري</span>
+                                <span class="font-semibold text-blue-600">
+                                    {{ "{:,.0f}".format((total_expenses / monthly_expenses|length) if monthly_expenses|length > 0 else 0) }} ريال
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                                <span>متوسط الإنفاق لكل فئة</span>
+                                <span class="font-semibold text-green-600">
+                                    {{ "{:,.0f}".format((total_expenses / category_expenses|length) if category_expenses|length > 0 else 0) }} ريال
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // بيانات الرسوم البيانية
+        const monthlyData = {
+            labels: [{% for month, total in monthly_expenses %}'{{ month }}'{% if not loop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'المصروفات الشهرية',
+                data: [{% for month, total in monthly_expenses %}{{ total }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2
+            }]
+        };
+
+        const categoryData = {
+            labels: [{% for category, total in category_expenses %}'{{ category or "أخرى" }}'{% if not loop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'المصروفات حسب الفئة',
+                data: [{% for category, total in category_expenses %}{{ total }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.5)',
+                    'rgba(34, 197, 94, 0.5)',
+                    'rgba(59, 130, 246, 0.5)',
+                    'rgba(245, 158, 11, 0.5)',
+                    'rgba(168, 85, 247, 0.5)',
+                    'rgba(236, 72, 153, 0.5)'
+                ],
+                borderColor: [
+                    'rgba(239, 68, 68, 1)',
+                    'rgba(34, 197, 94, 1)',
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(245, 158, 11, 1)',
+                    'rgba(168, 85, 247, 1)',
+                    'rgba(236, 72, 153, 1)'
+                ],
+                borderWidth: 2
+            }]
+        };
+
+        // إعداد الرسوم البيانية
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        new Chart(monthlyCtx, {
+            type: 'line',
+            data: monthlyData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString() + ' ريال';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: categoryData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        function exportReport() {
+            // هذه دالة وهمية - في التطبيق الحقيقي ستحتاج لتنفيذ تصدير حقيقي
+            alert('سيتم تصدير التقرير قريباً');
+        }
+    </script>
+</body>
+</html>
+

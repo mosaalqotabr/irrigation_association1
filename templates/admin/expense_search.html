@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>البحث في المصروفات - جمعية جنوب عزلة الشرف</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold">البحث في المصروفات</h1>
+                    <a href="{{ url_for('admin_expenses') }}" class="bg-blue-500 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">
+                        العودة للمصروفات
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- نموذج البحث -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">فلاتر البحث</h2>
+                <form id="searchForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label for="searchQuery" class="block text-sm font-medium text-gray-700 mb-2">
+                            البحث في الوصف
+                        </label>
+                        <input type="text" 
+                               id="searchQuery" 
+                               name="q"
+                               placeholder="ابحث في وصف المصروف..."
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="categoryFilter" class="block text-sm font-medium text-gray-700 mb-2">
+                            الفئة
+                        </label>
+                        <select id="categoryFilter" 
+                                name="category"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">جميع الفئات</option>
+                            <option value="صيانة">صيانة</option>
+                            <option value="مواد">مواد</option>
+                            <option value="رواتب">رواتب</option>
+                            <option value="وقود">وقود</option>
+                            <option value="كهرباء">كهرباء</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="dateFrom" class="block text-sm font-medium text-gray-700 mb-2">
+                            من تاريخ
+                        </label>
+                        <input type="date" 
+                               id="dateFrom" 
+                               name="date_from"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="dateTo" class="block text-sm font-medium text-gray-700 mb-2">
+                            إلى تاريخ
+                        </label>
+                        <input type="date" 
+                               id="dateTo" 
+                               name="date_to"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </form>
+
+                <div class="flex gap-4 mt-4">
+                    <button onclick="performSearch()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        بحث
+                    </button>
+                    <button onclick="clearSearch()" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                        مسح الفلاتر
+                    </button>
+                    <button onclick="exportResults()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        تصدير النتائج
+                    </button>
+                </div>
+            </div>
+
+            <!-- نتائج البحث -->
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-semibold text-gray-800">نتائج البحث</h2>
+                        <div class="text-sm text-gray-600">
+                            <span id="resultsCount">{{ expenses|length }}</span> نتيجة
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التاريخ</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الوصف</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الفئة</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
+                            {% for expense in expenses %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ expense.date.strftime('%Y/%m/%d') }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    {{ expense.description }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if expense.category == 'صيانة' %}bg-blue-100 text-blue-800
+                                        {% elif expense.category == 'مواد' %}bg-green-100 text-green-800
+                                        {% elif expense.category == 'رواتب' %}bg-purple-100 text-purple-800
+                                        {% elif expense.category == 'وقود' %}bg-yellow-100 text-yellow-800
+                                        {% elif expense.category == 'كهرباء' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ expense.category or 'أخرى' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ "{:,.0f}".format(expense.amount) }} ريال
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex gap-2">
+                                        <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" 
+                                           class="text-blue-600 hover:text-blue-900">تعديل</a>
+                                        <button onclick="deleteExpense({{ expense.id }})" 
+                                                class="text-red-600 hover:text-red-900">حذف</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ملخص النتائج -->
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-600">
+                            إجمالي النتائج: <span id="totalResults">{{ expenses|length }}</span>
+                        </div>
+                        <div class="text-lg font-semibold text-blue-600">
+                            إجمالي المبلغ: <span id="totalAmount">{{ "{:,.0f}".format(expenses|sum(attribute='amount')) }}</span> ريال
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="bg-white rounded-lg p-6 text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">جاري البحث...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function performSearch() {
+            const form = document.getElementById('searchForm');
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData);
+            
+            // إظهار شاشة التحميل
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            
+            fetch(`{{ url_for('expense_search') }}?${params.toString()}`, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateResults(data.expenses);
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                showMessage('حدث خطأ في البحث', 'error');
+            });
+        }
+
+        function updateResults(expenses) {
+            const tbody = document.getElementById('resultsTableBody');
+            const resultsCount = document.getElementById('resultsCount');
+            const totalResults = document.getElementById('totalResults');
+            const totalAmount = document.getElementById('totalAmount');
+            
+            // مسح النتائج السابقة
+            tbody.innerHTML = '';
+            
+            let total = 0;
+            
+            expenses.forEach(expense => {
+                total += parseFloat(expense.amount);
+                
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${new Date(expense.date).toLocaleDateString('ar-SA')}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        ${expense.description}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            ${expense.category || 'أخرى'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${parseFloat(expense.amount).toLocaleString()} ريال
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex gap-2">
+                            <a href="/admin/edit_expense/${expense.id}" class="text-blue-600 hover:text-blue-900">تعديل</a>
+                            <button onclick="deleteExpense(${expense.id})" class="text-red-600 hover:text-red-900">حذف</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // تحديث الإحصائيات
+            resultsCount.textContent = expenses.length;
+            totalResults.textContent = expenses.length;
+            totalAmount.textContent = total.toLocaleString();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchForm').reset();
+            // إعادة تحميل الصفحة لإظهار جميع النتائج
+            window.location.href = '{{ url_for("expense_search") }}';
+        }
+
+        function exportResults() {
+            const form = document.getElementById('searchForm');
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData);
+            
+            // إنشاء رابط تصدير
+            const exportUrl = `{{ url_for('export_expenses_excel') }}?${params.toString()}`;
+            window.open(exportUrl, '_blank');
+        }
+
+        function deleteExpense(expenseId) {
+            if (confirm('هل أنت متأكد من حذف هذا المصروف؟')) {
+                fetch(`/admin/delete_expense/${expenseId}`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showMessage('تم حذف المصروف بنجاح', 'success');
+                        performSearch(); // إعادة البحث لتحديث النتائج
+                    } else {
+                        showMessage('حدث خطأ في حذف المصروف', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('حدث خطأ في الاتصال', 'error');
+                });
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' : 
+                'bg-red-100 border border-red-400 text-red-700'
+            }`;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 5000);
+        }
+
+        // البحث التلقائي عند تغيير الفلاتر
+        document.getElementById('searchQuery').addEventListener('input', debounce(performSearch, 500));
+        document.getElementById('categoryFilter').addEventListener('change', performSearch);
+        document.getElementById('dateFrom').addEventListener('change', performSearch);
+        document.getElementById('dateTo').addEventListener('change', performSearch);
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>
+

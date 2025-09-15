@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if action == 'add' %}إضافة مشترك جديد{% else %}تعديل مشترك{% endif %} - جمعية جنوب عزلةالشرف 
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-user-plus text-blue-500 ml-2"></i>
+                    {% if action == 'add' %}إضافة مشترك جديد{% else %}تعديل مشترك{% endif %}
+                </h1>
+                <p class="text-gray-600">
+                    {% if action == 'add' %}أدخل بيانات المشترك الجديد{% else %}تعديل بيانات المشترك{% endif %}
+                </p>
+            </div>
+            
+            <a href="{{ url_for('admin_members') }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-arrow-right ml-2"></i>العودة لقائمة المشتركين
+            </a>
+        </div>
+    </div>
+
+    <!-- Member Form -->
+    <div class="bg-white rounded-lg p-6 card-shadow">
+        <form method="POST" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Member Number -->
+                <div>
+                    <label for="member_number" class="block text-sm font-medium text-gray-700 mb-2">
+                        رقم العضو <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" 
+                           id="member_number" 
+                           name="member_number" 
+                           value="{{ member.member_number if member else '' }}"
+                           required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="أدخل رقم العضو">
+                </div>
+
+                <!-- Name -->
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                        الاسم الكامل <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" 
+                           id="name" 
+                           name="name" 
+                           value="{{ member.name if member else '' }}"
+                           required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="أدخل الاسم الكامل">
+                </div>
+
+                <!-- Village -->
+                <div>
+                    <label for="village" class="block text-sm font-medium text-gray-700 mb-2">
+                        القرية
+                    </label>
+                    <input type="text" 
+                           id="village" 
+                           name="village" 
+                           value="{{ member.village if member else '' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="أدخل اسم القرية">
+                </div>
+
+                <!-- Membership Fee -->
+                <div>
+                    <label for="membership_fee" class="block text-sm font-medium text-gray-700 mb-2">
+                        رسوم العضوية (ريال) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" 
+                           id="membership_fee" 
+                           name="membership_fee" 
+                           value="{{ member.membership_fee if member else '5000' }}"
+                           step="0.01"
+                           required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="أدخل رسوم العضوية">
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-4 space-x-reverse pt-6 border-t">
+                <a href="{{ url_for('admin_members') }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                    إلغاء
+                </a>
+                <button type="submit" 
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-save ml-2"></i>
+                    {% if action == 'add' %}إضافة المشترك{% else %}حفظ التغييرات{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Help Section -->
+    <div class="bg-blue-50 rounded-lg p-4 mt-6">
+        <h3 class="text-lg font-semibold text-blue-800 mb-2">
+            <i class="fas fa-info-circle ml-2"></i>معلومات مهمة
+        </h3>
+        <ul class="text-blue-700 space-y-1">
+            <li>• رقم العضو يجب أن يكون فريداً لكل مشترك</li>
+            <li>• رسوم العضوية الافتراضية هي 5000 ريال</li>
+            <li>• يمكن ترك حقل القرية فارغاً إذا لم يكن معروفاً</li>
+            <li>• بعد إضافة المشترك يمكن إدارة مدفوعاته الشهرية من قسم المدفوعات</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+

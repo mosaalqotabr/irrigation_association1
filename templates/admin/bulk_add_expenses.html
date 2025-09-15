@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إضافة مصروفات متعددة - جمعية جنوب عزلة الشرف</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold">إضافة مصروفات متعددة</h1>
+                    <a href="{{ url_for('admin_expenses') }}" class="bg-blue-500 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">
+                        العودة للمصروفات
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <div class="max-w-6xl mx-auto">
+                <!-- أدوات التحكم -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800">إدارة المصروفات</h2>
+                        <div class="flex gap-4">
+                            <button onclick="addExpenseRow()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                إضافة صف
+                            </button>
+                            <button onclick="clearAll()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                مسح الكل
+                            </button>
+                            <button onclick="saveAllExpenses()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                حفظ جميع المصروفات
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- جدول المصروفات -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الوصف</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الفئة</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التاريخ</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- سيتم إضافة الصفوف هنا بـ JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ملخص -->
+                <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-800">ملخص المصروفات</h3>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600">عدد المصروفات: <span id="expenseCount" class="font-semibold">0</span></p>
+                            <p class="text-lg font-semibold text-blue-600">الإجمالي: <span id="totalAmount">0</span> ريال</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="bg-white rounded-lg p-6 text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">جاري حفظ المصروفات...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let expenseCounter = 0;
+
+        function addExpenseRow() {
+            expenseCounter++;
+            const tbody = document.getElementById('expensesTableBody');
+            const row = document.createElement('tr');
+            row.id = `expense-row-${expenseCounter}`;
+            row.innerHTML = `
+                <td class="px-6 py-4">
+                    <input type="text" 
+                           id="description-${expenseCounter}"
+                           placeholder="وصف المصروف"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           onchange="updateSummary()">
+                </td>
+                <td class="px-6 py-4">
+                    <input type="number" 
+                           id="amount-${expenseCounter}"
+                           placeholder="0.00"
+                           step="0.01"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           onchange="updateSummary()">
+                </td>
+                <td class="px-6 py-4">
+                    <select id="category-${expenseCounter}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="صيانة">صيانة</option>
+                        <option value="مواد">مواد</option>
+                        <option value="رواتب">رواتب</option>
+                        <option value="وقود">وقود</option>
+                        <option value="كهرباء">كهرباء</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </td>
+                <td class="px-6 py-4">
+                    <input type="date" 
+                           id="date-${expenseCounter}"
+                           value="${new Date().toISOString().split('T')[0]}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </td>
+                <td class="px-6 py-4">
+                    <button onclick="removeExpenseRow(${expenseCounter})" 
+                            class="text-red-600 hover:text-red-800 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+            updateSummary();
+        }
+
+        function removeExpenseRow(id) {
+            const row = document.getElementById(`expense-row-${id}`);
+            if (row) {
+                row.remove();
+                updateSummary();
+            }
+        }
+
+        function clearAll() {
+            if (confirm('هل أنت متأكد من مسح جميع المصروفات؟')) {
+                document.getElementById('expensesTableBody').innerHTML = '';
+                expenseCounter = 0;
+                updateSummary();
+            }
+        }
+
+        function updateSummary() {
+            const rows = document.querySelectorAll('#expensesTableBody tr');
+            let total = 0;
+            let count = 0;
+
+            rows.forEach(row => {
+                const amountInput = row.querySelector('input[type="number"]');
+                if (amountInput && amountInput.value) {
+                    total += parseFloat(amountInput.value) || 0;
+                    count++;
+                }
+            });
+
+            document.getElementById('expenseCount').textContent = count;
+            document.getElementById('totalAmount').textContent = total.toLocaleString();
+        }
+
+        function saveAllExpenses() {
+            const rows = document.querySelectorAll('#expensesTableBody tr');
+            const expenses = [];
+
+            rows.forEach(row => {
+                const description = row.querySelector('input[type="text"]').value.trim();
+                const amount = row.querySelector('input[type="number"]').value;
+                const category = row.querySelector('select').value;
+                const date = row.querySelector('input[type="date"]').value;
+
+                if (description && amount && parseFloat(amount) > 0) {
+                    expenses.push({
+                        description: description,
+                        amount: amount,
+                        category: category,
+                        date: date
+                    });
+                }
+            });
+
+            if (expenses.length === 0) {
+                alert('يرجى إضافة مصروف واحد على الأقل');
+                return;
+            }
+
+            // إظهار شاشة التحميل
+            document.getElementById('loadingModal').classList.remove('hidden');
+
+            // إرسال البيانات
+            fetch('{{ url_for("bulk_add_expenses") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(expenses)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingModal').classList.add('hidden');
+                
+                if (data.success) {
+                    showMessage('تم حفظ جميع المصروفات بنجاح', 'success');
+                    setTimeout(() => {
+                        window.location.href = '{{ url_for("admin_expenses") }}';
+                    }, 2000);
+                } else {
+                    showMessage('حدث خطأ: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingModal').classList.add('hidden');
+                showMessage('حدث خطأ في الاتصال', 'error');
+                console.error('Error:', error);
+            });
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' : 
+                'bg-red-100 border border-red-400 text-red-700'
+            }`;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 5000);
+        }
+
+        // إضافة صف واحد عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            addExpenseRow();
+        });
+    </script>
+</body>
+</html>
+

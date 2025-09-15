@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المشتركين - عرض Excel - جمعية جنوب عزلةالشرف {% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- رسائل التنبيه -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- العودة للوحة التحكم -->
+    <div class="mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right me-2"></i>العودة للوحة التحكم
+        </a>
+    </div>
+
+    <!-- عنوان الصفحة وأزرار الإجراءات -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title text-primary mb-2">
+                        <i class="fas fa-table me-2"></i>إدارة المشتركين - عرض Excel
+                    </h2>
+                    <p class="text-muted mb-0">واجهة تفاعلية شبيهة بـ Excel لإدارة بيانات المشتركين والمدفوعات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin_add_member') }}" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>إضافة عضو
+                        </a>
+                        <a href="{{ url_for('admin_export_excel') }}" class="btn btn-primary">
+                            <i class="fas fa-download me-2"></i>تصدير Excel
+                        </a>
+                        <a href="{{ url_for('admin_import_excel') }}" class="btn btn-warning">
+                            <i class="fas fa-upload me-2"></i>استيراد Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول البيانات شبيه بـ Excel -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                        <table class="table table-bordered table-hover mb-0" id="membersTable">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th style="min-width: 80px;">الرقم</th>
+                                    <th style="min-width: 200px;">الاسم</th>
+                                    <th style="min-width: 120px;">رسوم العضوية</th>
+                                    <th style="min-width: 100px;">شهر11</th>
+                                    <th style="min-width: 100px;">شهر12</th>
+                                    <th style="min-width: 100px;">شهر1</th>
+                                    <th style="min-width: 100px;">شهر2</th>
+                                    <th style="min-width: 100px;">شهر3</th>
+                                    <th style="min-width: 100px;">شهر4</th>
+                                    <th style="min-width: 100px;">شهر5</th>
+                                    <th style="min-width: 100px;">شهر6</th>
+                                    <th style="min-width: 100px;">شهر7</th>
+                                    <th style="min-width: 120px;">إجمالي المدفوع</th>
+                                    <th style="min-width: 150px;">ملاحظات</th>
+                                    <th style="min-width: 120px;">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in members %}
+                                <tr data-member-id="{{ member.id }}">
+                                    <td class="text-center">{{ member.member_number }}</td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm border-0" 
+                                               value="{{ member.name }}" 
+                                               onchange="updateMember({{ member.id }}, 'name', this.value)">
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm border-0 text-center" 
+                                               value="{{ member.membership_fee }}" 
+                                               onchange="updateMember({{ member.id }}, 'membership_fee', this.value)">
+                                    </td>
+                                    
+                                    <!-- المدفوعات الشهرية -->
+                                    {% set months = [(11, 2024), (12, 2024), (1, 2025), (2, 2025), (3, 2025), (4, 2025), (5, 2025), (6, 2025), (7, 2025)] %}
+                                    {% for month, year in months %}
+                                    <td class="text-center">
+                                        {% set payment = member.get_payment_for_month(month, year) %}
+                                        <select class="form-select form-select-sm border-0 payment-select" 
+                                                onchange="updatePayment({{ member.id }}, {{ month }}, {{ year }}, this.value)"
+                                                style="background-color: {{ 'lightgreen' if payment and payment.is_paid else 'lightcoral' }};">
+                                            <option value="0" {{ 'selected' if not payment or not payment.is_paid else '' }}>0</option>
+                                            <option value="1000" {{ 'selected' if payment and payment.is_paid else '' }}>1000</option>
+                                        </select>
+                                    </td>
+                                    {% endfor %}
+                                    
+                                    <td class="text-center fw-bold">
+                                        {{ "{:,}".format(member.get_total_paid()) }}
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm border-0" 
+                                               value="{{ member.notes or '' }}" 
+                                               onchange="updateMember({{ member.id }}, 'notes', this.value)">
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('admin_edit_member', member_id=member.id) }}" 
+                                               class="btn btn-outline-primary btn-sm" title="تعديل">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                    onclick="deleteMember({{ member.id }}, '{{ member.name }}')" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h5 class="text-primary">{{ members|length }}</h5>
+                            <small class="text-muted">إجمالي الأعضاء</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-success">{{ "{:,}".format(members|sum(attribute='membership_fee')) }}</h5>
+                            <small class="text-muted">إجمالي رسوم العضوية</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-info">{{ "{:,}".format(members|map('get_total_paid')|sum) }}</h5>
+                            <small class="text-muted">إجمالي المحصل</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-warning">{{ "{:,}".format((members|length * 12 * 1000) - members|map('get_total_paid')|sum) }}</h5>
+                            <small class="text-muted">المتبقي</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateMember(memberId, field, value) {
+    fetch('/admin/api/member/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            member_id: memberId,
+            field: field,
+            value: value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            alert('خطأ في التحديث: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ في التحديث');
+    });
+}
+
+function updatePayment(memberId, month, year, amount) {
+    const isPaid = amount > 0;
+    
+    fetch('/admin/api/payment/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            member_id: memberId,
+            month: month,
+            year: year,
+            amount: parseInt(amount),
+            is_paid: isPaid
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // تحديث لون الخلية
+            const select = event.target;
+            select.style.backgroundColor = isPaid ? 'lightgreen' : 'lightcoral';
+            
+            // تحديث إجمالي المدفوع
+            updateTotalPaid(memberId);
+        } else {
+            alert('خطأ في التحديث: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ في التحديث');
+    });
+}
+
+function updateTotalPaid(memberId) {
+    fetch('/admin/api/member/total-paid/' + memberId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const row = document.querySelector(`tr[data-member-id="${memberId}"]`);
+            const totalCell = row.querySelector('td:nth-last-child(3)');
+            totalCell.textContent = data.total_paid.toLocaleString();
+        }
+    });
+}
+
+function deleteMember(memberId, memberName) {
+    if (confirm(`هل أنت متأكد من حذف العضو "${memberName}"؟\nسيتم حذف جميع مدفوعاته أيضاً.`)) {
+        fetch('/admin/members/delete/' + memberId, {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('حدث خطأ في الحذف');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في الحذف');
+        });
+    }
+}
+
+// تحسين تجربة المستخدم
+document.addEventListener('DOMContentLoaded', function() {
+    // إضافة تأثيرات بصرية للجدول
+    const table = document.getElementById('membersTable');
+    
+    // تمييز الصف عند التمرير
+    table.addEventListener('mouseover', function(e) {
+        if (e.target.closest('tr')) {
+            e.target.closest('tr').classList.add('table-active');
+        }
+    });
+    
+    table.addEventListener('mouseout', function(e) {
+        if (e.target.closest('tr')) {
+            e.target.closest('tr').classList.remove('table-active');
+        }
+    });
+});
+</script>
+
+<style>
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid #dee2e6;
+}
+
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #80bdff;
+}
+
+.payment-select {
+    transition: background-color 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+</style>
+{% endblock %}
+

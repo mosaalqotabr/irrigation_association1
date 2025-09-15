@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المدفوعات - عرض Excel - جمعية جنوب عزلةالشرف {% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- رسائل التنبيه -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- العودة للوحة التحكم -->
+    <div class="mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right me-2"></i>العودة للوحة التحكم
+        </a>
+    </div>
+
+    <!-- عنوان الصفحة وأزرار الإجراءات -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title text-primary mb-2">
+                        <i class="fas fa-money-check-alt me-2"></i>إدارة المدفوعات - عرض Excel
+                    </h2>
+                    <p class="text-muted mb-0">واجهة تفاعلية شاملة لإدارة جميع المدفوعات الشهرية</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin_export_excel') }}" class="btn btn-success">
+                            <i class="fas fa-download me-2"></i>تصدير Excel
+                        </a>
+                        <a href="{{ url_for('admin_import_excel') }}" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>استيراد Excel
+                        </a>
+                        <a href="{{ url_for('admin_financial_summary') }}" class="btn btn-info">
+                            <i class="fas fa-chart-line me-2"></i>الملخص المالي
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الإحصائيات السريعة -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <h5 class="text-primary mb-1">{{ members|length }}</h5>
+                    <small class="text-muted">إجمالي الأعضاء</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <h5 class="text-success mb-1">{{ "{:,}".format(total_membership_fees) }}</h5>
+                    <small class="text-muted">رسوم العضوية</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <h5 class="text-info mb-1">{{ "{:,}".format(total_monthly_payments) }}</h5>
+                    <small class="text-muted">المدفوعات الشهرية</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <h5 class="text-warning mb-1">{{ "{:,}".format(total_collected) }}</h5>
+                    <small class="text-muted">إجمالي المحصل</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <h5 class="text-danger mb-1">{{ "{:,}".format(total_expected - total_collected) }}</h5>
+                    <small class="text-muted">المتبقي</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <h5 class="text-secondary mb-1">{{ "{:.1f}".format((total_collected / total_expected * 100) if total_expected > 0 else 0) }}%</h5>
+                    <small class="text-muted">نسبة التحصيل</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول المدفوعات الشامل -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 70vh; overflow: auto;">
+                        <table class="table table-bordered table-hover mb-0" id="paymentsTable">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th rowspan="2" style="min-width: 60px; vertical-align: middle;">الرقم</th>
+                                    <th rowspan="2" style="min-width: 180px; vertical-align: middle;">الاسم</th>
+                                    <th rowspan="2" style="min-width: 100px; vertical-align: middle;">رسوم العضوية</th>
+                                    <th colspan="9" class="text-center">المدفوعات الشهرية (ريال)</th>
+                                    <th rowspan="2" style="min-width: 100px; vertical-align: middle;">إجمالي المدفوع</th>
+                                    <th rowspan="2" style="min-width: 100px; vertical-align: middle;">المتبقي</th>
+                                    <th rowspan="2" style="min-width: 120px; vertical-align: middle;">ملاحظات</th>
+                                </tr>
+                                <tr>
+                                    <th style="min-width: 80px;">شهر11<br><small>2024</small></th>
+                                    <th style="min-width: 80px;">شهر12<br><small>2024</small></th>
+                                    <th style="min-width: 80px;">شهر1<br><small>2025</small></th>
+                                    <th style="min-width: 80px;">شهر2<br><small>2025</small></th>
+                                    <th style="min-width: 80px;">شهر3<br><small>2025</small></th>
+                                    <th style="min-width: 80px;">شهر4<br><small>2025</small></th>
+                                    <th style="min-width: 80px;">شهر5<br><small>2025</small></th>
+                                    <th style="min-width: 80px;">شهر6<br><small>2025</small></th>
+                                    <th style="min-width: 80px;">شهر7<br><small>2025</small></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in members %}
+                                <tr data-member-id="{{ member.id }}">
+                                    <td class="text-center fw-bold">{{ member.member_number }}</td>
+                                    <td>{{ member.name }}</td>
+                                    <td class="text-center">{{ "{:,}".format(member.membership_fee) }}</td>
+                                    
+                                    <!-- المدفوعات الشهرية -->
+                                    {% set months = [(11, 2024), (12, 2024), (1, 2025), (2, 2025), (3, 2025), (4, 2025), (5, 2025), (6, 2025), (7, 2025)] %}
+                                    {% for month, year in months %}
+                                    <td class="text-center p-1">
+                                     {% set payment = member.get_payment_for_month(month, year) %}
+                                     {% set is_paid = payment and payment.is_paid %}
+                                     {% set amount = payment.amount if payment and payment.is_paid else 0 %}
+                                        
+                                        <div class="payment-cell" 
+                                             data-member-id="{{ member.id }}" 
+                                             data-month="{{ month }}" 
+                                             data-year="{{ year }}"
+                                             style="background-color: {{ '#d4edda' if is_paid else '#f8d7da' }}; 
+                                                    border-radius:4px; 
+                                                    padding: 2px; 
+                                                    cursor: pointer;"
+                                             onclick="togglePayment(this)">
+                                            <span class="payment-amount">{{ amount if is_paid else 0 }}</span>
+                                            <input type="hidden" class="payment-status" value="{{ 'true' if is_paid else 'false' }}">
+                                        </div>
+                                    </td>
+                                    {% endfor %}
+                                    
+                                    <td class="text-center fw-bold text-success">
+                                        <span class="total-paid">{{ "{:,}".format(member.get_total_paid()) }}</span>
+                                    </td>
+                                    <td class="text-center fw-bold text-warning">
+                                        {% set remaining = (member.membership_fee * 12) - member.get_total_paid() %}
+                                        <span class="remaining-balance">{{ "{:,}".format(remaining if remaining > 0 else 0) }}</span>
+                                    </td>
+                                    <td>
+                                        <input type="text" 
+                                               class="form-control form-control-sm border-0" 
+                                               value="{{ member.notes or '' }}" 
+                                               onchange="updateMemberNotes({{ member.id }}, this.value)"
+                                               placeholder="ملاحظات...">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                
+                                <!-- صف الإجماليات -->
+                                <tr class="table-warning fw-bold">
+                                    <td colspan="2" class="text-center">الإجماليات</td>
+                                    <td class="text-center">{{ "{:,}".format(total_membership_fees) }}</td>
+                                    
+                                    {% for month, year in [(11, 2024), (12, 2024), (1, 2025), (2, 2025), (3, 2025), (4, 2025), (5, 2025), (6, 2025), (7, 2025)] %}
+                                    <td class="text-center">
+                                        {% set monthly_total = 0 %}
+                                        {% for member in members %}
+                                            {% set payment = member.get_payment_for_month(month, year) %}
+                                            {% if payment and payment.is_paid %}
+                                                {% set monthly_total = monthly_total + payment.amount %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {{ "{:,}".format(monthly_total) }}
+                                    </td>
+                                    {% endfor %}
+                                    
+                                    <td class="text-center">{{ "{:,}".format(total_collected) }}</td>
+                                    <td class="text-center">{{ "{:,}".format(total_expected - total_collected) }}</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أزرار الحفظ والإجراءات -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <button type="button" class="btn btn-success btn-lg me-3" onclick="saveAllChanges()">
+                <i class="fas fa-save me-2"></i>حفظ جميع التغييرات
+            </button>
+            <button type="button" class="btn btn-warning btn-lg me-3" onclick="calculateTotals()">
+                <i class="fas fa-calculator me-2"></i>إعادة حساب الإجماليات
+            </button>
+            <button type="button" class="btn btn-info btn-lg" onclick="exportCurrentView()">
+                <i class="fas fa-file-excel me-2"></i>تصدير العرض الحالي
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let changedPayments = [];
+
+function togglePayment(cell) {
+    const memberId = cell.dataset.memberId;
+    const month = cell.dataset.month;
+    const year = cell.dataset.year;
+    const statusInput = cell.querySelector('.payment-status');
+    const amountSpan = cell.querySelector('.payment-amount');
+    
+    const currentStatus = statusInput.value === 'true';
+    const newStatus = !currentStatus;
+    const newAmount = newStatus ? 1000 : 0;
+    
+    // تحديث العرض
+    statusInput.value = newStatus.toString();
+    amountSpan.textContent = newAmount;
+    cell.style.backgroundColor = newStatus ? '#d4edda' : '#f8d7da';
+    
+    // إضافة للتغييرات المعلقة
+    const changeIndex = changedPayments.findIndex(p => 
+        p.member_id == memberId && p.month == month && p.year == year
+    );
+    
+    if (changeIndex >= 0) {
+        changedPayments[changeIndex] = {
+            member_id: parseInt(memberId),
+            month: parseInt(month),
+            year: parseInt(year),
+            amount: newAmount,
+            is_paid: newStatus
+        };
+    } else {
+        changedPayments.push({
+            member_id: parseInt(memberId),
+            month: parseInt(month),
+            year: parseInt(year),
+            amount: newAmount,
+            is_paid: newStatus
+        });
+    }
+    
+    // تحديث الإجماليات
+    updateMemberTotals(memberId);
+    updateMonthlyTotals();
+    
+    // إظهار مؤشر التغيير
+    cell.classList.add('changed');
+}
+
+function updateMemberTotals(memberId) {
+    const row = document.querySelector(`tr[data-member-id="${memberId}"]`);
+    const paymentCells = row.querySelectorAll('.payment-cell');
+    
+    let totalPaid = 0;
+    paymentCells.forEach(cell => {
+        const amount = parseInt(cell.querySelector('.payment-amount').textContent) || 0;
+        totalPaid += amount;
+    });
+    
+    const totalPaidSpan = row.querySelector('.total-paid');
+    const remainingSpan = row.querySelector('.remaining-balance');
+    
+    totalPaidSpan.textContent = totalPaid.toLocaleString();
+    
+    const membershipFee = 5000; // افتراضي
+    const remaining = Math.max(0, (membershipFee * 12) - totalPaid);
+    remainingSpan.textContent = remaining.toLocaleString();
+}
+
+function updateMonthlyTotals() {
+    const table = document.getElementById('paymentsTable');
+    const totalRow = table.querySelector('.table-warning');
+    const monthCells = totalRow.querySelectorAll('td');
+    
+    // تحديث إجماليات الأشهر (من العمود 4 إلى 12)
+    for (let i = 3; i < 12; i++) {
+        let monthlyTotal = 0;
+        const columnCells = table.querySelectorAll(`tbody tr:not(.table-warning) td:nth-child(${i + 1}) .payment-amount`);
+        
+        columnCells.forEach(cell => {
+            monthlyTotal += parseInt(cell.textContent) || 0;
+        });
+        
+        monthCells[i].textContent = monthlyTotal.toLocaleString();
+    }
+}
+
+function saveAllChanges() {
+    if (changedPayments.length === 0) {
+        alert('لا توجد تغييرات للحفظ');
+        return;
+    }
+    
+    const saveButton = document.querySelector('.btn-success');
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
+    
+    fetch('/admin/api/payments/bulk-update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            payments: changedPayments
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`تم حفظ ${changedPayments.length} تغيير بنجاح`);
+            changedPayments = [];
+            
+            // إزالة مؤشرات التغيير
+            document.querySelectorAll('.payment-cell.changed').forEach(cell => {
+                cell.classList.remove('changed');
+            });
+        } else {
+            alert('خطأ في الحفظ: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ في الحفظ');
+    })
+    .finally(() => {
+        saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save me-2"></i>حفظ جميع التغييرات';
+    });
+}
+
+function updateMemberNotes(memberId, notes) {
+    fetch('/admin/api/member/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            member_id: memberId,
+            field: 'notes',
+            value: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            alert('خطأ في تحديث الملاحظات: ' + data.message);
+        }
+    });
+}
+
+function calculateTotals() {
+    updateMonthlyTotals();
+    alert('تم إعادة حساب الإجماليات');
+}
+
+function exportCurrentView() {
+    window.location.href = '/admin/excel/export';
+}
+
+// إضافة أنماط CSS للتغييرات
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .payment-cell.changed {
+            box-shadow: 0 0 5px #007bff;
+            border: 2px solid #007bff !important;
+        }
+        
+        .payment-cell:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+            transition: all 0.2s ease;
+        }
+        
+        .sticky-top {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}
+

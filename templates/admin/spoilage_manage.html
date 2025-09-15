@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة التوالف - جمعية جنوب عزلة الشرف</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+            .glass-card { background: white !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-4">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="fixed top-4 left-4 right-4 z-50 space-y-2">
+                    {% for category, message in messages %}
+                        <div class="alert p-4 rounded-lg shadow-lg flex justify-between items-center
+                            {% if category == 'success' %}bg-green-100 border border-green-400 text-green-700
+                            {% elif category == 'error' %}bg-red-100 border border-red-400 text-red-700
+                            {% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
+                            <span class="flex items-center">
+                                {% if category == 'success' %}
+                                    <i class="fas fa-check-circle ml-2"></i>
+                                {% elif category == 'error' %}
+                                    <i class="fas fa-exclamation-circle ml-2"></i>
+                                {% else %}
+                                    <i class="fas fa-info-circle ml-2"></i>
+                                {% endif %}
+                                {{ message }}
+                            </span>
+                            <button type="button" class="text-current opacity-70 hover:opacity-100" onclick="this.parentElement.remove();">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Header -->
+        <header class="glass-card rounded-lg shadow-xl p-6 mb-6">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2 flex items-center">
+                        <i class="fas fa-exclamation-triangle text-red-600 ml-3"></i>
+                        إدارة التوالف
+                    </h1>
+                    <p class="text-gray-600">إجمالي التوالف: {{ spoilages|length }} | قيمة التلف: {{ "{:,.0f}".format(total_spoilage) }} ريال</p>
+                    <p class="text-red-600 text-sm"><i class="fas fa-eye-slash ml-1"></i> هذا القسم مخفي عن الزوار</p>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3 no-print">
+                    <button onclick="openAddSpoilageModal()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-plus ml-2"></i>إضافة تلف
+                    </button>
+                    <a href="{{ url_for('spoilage_report') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-chart-bar ml-2"></i>التقارير
+                    </a>
+                    <button onclick="window.print()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-print ml-2"></i>طباعة
+                    </button>
+                    <a href="{{ url_for('admin_dashboard') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl">
+                        <i class="fas fa-arrow-right ml-2"></i>العودة
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-red-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-exclamation-triangle text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ spoilages|length }}</h3>
+                        <p class="text-gray-600">إجمالي التوالف</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-orange-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-money-bill-wave text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(total_original) }}</h3>
+                        <p class="text-gray-600">القيمة الأصلية (ريال)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-red-600 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-arrow-down text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(total_spoilage) }}</h3>
+                        <p class="text-gray-600">قيمة التلف (ريال)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-lg shadow-xl p-6">
+                <div class="flex items-center">
+                    <div class="bg-yellow-500 text-white p-3 rounded-full ml-4">
+                        <i class="fas fa-percentage text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ "{:.1f}%".format((total_spoilage / total_original * 100) if total_original > 0 else 0) }}</h3>
+                        <p class="text-gray-600">نسبة التلف</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spoilage Table -->
+        <div class="glass-card rounded-lg shadow-xl overflow-hidden">
+            <div class="bg-gradient-to-r from-red-600 to-orange-600 text-white px-6 py-4">
+                <h3 class="text-xl font-bold flex items-center">
+                    <i class="fas fa-list ml-3"></i>
+                    قائمة التوالف
+                </h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">اسم الصنف</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">الفئة</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">القيمة الأصلية</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">قيمة التلف</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">سبب التلف</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ التلف</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider no-print">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for spoilage in spoilages %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-center text-sm font-medium text-gray-900">
+                                {{ spoilage.item_name }}
+                                {% if spoilage.description %}
+                                <br><small class="text-gray-500">{{ spoilage.description[:30] }}...</small>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                    {% if spoilage.category == 'كراسي' %}bg-brown-100 text-brown-800
+                                    {% elif spoilage.category == 'ألواح شمسية' %}bg-yellow-100 text-yellow-800
+                                    {% elif spoilage.category == 'بطاريات' %}bg-green-100 text-green-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ spoilage.category or 'غير محدد' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm font-bold text-blue-600">
+                                {{ "{:,.0f}".format(spoilage.original_value) }}
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm font-bold text-red-600">
+                                {{ "{:,.0f}".format(spoilage.spoilage_value) }}
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm text-gray-900">
+                                {{ spoilage.spoilage_reason or 'غير محدد' }}
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm text-gray-900">
+                                {{ spoilage.spoilage_date.strftime('%Y-%m-%d') }}
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                    {% if spoilage.status == 'تالف' %}bg-red-100 text-red-800
+                                    {% elif spoilage.status == 'مُصلح' %}bg-green-100 text-green-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ spoilage.status }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm no-print">
+                                <div class="flex justify-center gap-2">
+                                    <button onclick="editSpoilage({{ spoilage.id }})" 
+                                            class="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deleteSpoilage({{ spoilage.id }})" 
+                                            class="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Spoilage Modal -->
+    <div id="addSpoilageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg p-6 w-full max-w-2xl shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">إضافة تلف جديد</h3>
+                    <button onclick="closeAddSpoilageModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form method="POST" action="{{ url_for('add_spoilage') }}">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">اسم الصنف التالف</label>
+                            <input type="text" name="item_name" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">الفئة</label>
+                            <select name="category" required 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                                <option value="">اختر الفئة</option>
+                                <option value="كراسي">كراسي</option>
+                                <option value="ألواح شمسية">ألواح شمسية</option>
+                                <option value="بطاريات">بطاريات</option>
+                                <option value="معدات">معدات</option>
+                                <option value="أجهزة">أجهزة</option>
+                                <option value="أخرى">أخرى</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">القيمة الأصلية (ريال)</label>
+                            <input type="number" name="original_value" required min="0" step="0.01"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">قيمة التلف المخصومة (ريال)</label>
+                            <input type="number" name="spoilage_value" required min="0" step="0.01"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">سبب التلف</label>
+                            <input type="text" name="spoilage_reason" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                                   placeholder="مثال: تلف بسبب العوامل الجوية">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">وصف التلف</label>
+                            <textarea name="description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                                      placeholder="وصف تفصيلي للتلف..."></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
+                            <textarea name="notes" rows="2"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                                      placeholder="ملاحظات إضافية..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3 mt-6">
+                        <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold transition-all">
+                            <i class="fas fa-save ml-2"></i>حفظ
+                        </button>
+                        <button type="button" onclick="closeAddSpoilageModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold transition-all">
+                            إلغاء
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // إخفاء رسائل التنبيه بعد 5 ثوان
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 5000);
+
+        function openAddSpoilageModal() {
+            document.getElementById('addSpoilageModal').classList.remove('hidden');
+        }
+
+        function closeAddSpoilageModal() {
+            document.getElementById('addSpoilageModal').classList.add('hidden');
+        }
+
+        function editSpoilage(spoilageId) {
+            // يمكن إضافة مودال للتعديل هنا
+            alert('ميزة التعديل قيد التطوير');
+        }
+
+        function deleteSpoilage(spoilageId) {
+            if (confirm('هل أنت متأكد من حذف هذا التلف؟ سيتم إعادة قيمته للأصول.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/admin/spoilage/delete/${spoilageId}`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html>
+

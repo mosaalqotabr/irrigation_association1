@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة تحكم المدير - جمعية جنوب عزلةالشرف {% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-cog text-blue-500 ml-2"></i>لوحة تحكم المدير
+        </h1>
+        <p class="text-gray-600">إدارة شاملة لبيانات الجمعية والمشتركين</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-blue-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ stats.total_members }}</h3>
+                    <p class="text-gray-600">إجمالي المشتركين</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-green-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-money-bill-wave text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(stats.total_paid) }}</h3>
+                    <p class="text-gray-600">إجمالي المدفوعات (ريال)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-red-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-receipt text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(stats.total_expenses) }}</h3>
+                    <p class="text-gray-600">إجمالي المصروفات (ريال)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-{% if stats.balance >= 0 %}green{% else %}red{% endif %}-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-balance-scale text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(stats.balance) }}</h3>
+                    <p class="text-gray-600">الرصيد المتبقي (ريال)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Sections -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Members Management -->
+        <div class="bg-white rounded-lg p-6 card-shadow">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-users text-blue-500 ml-2"></i>إدارة المشتركين
+            </h3>
+            <p class="text-gray-600 mb-4">إضافة وتعديل وحذف المشتركين</p>
+            <div class="space-y-2">
+                <a href="{{ url_for('admin_members') }}" class="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                    <i class="fas fa-list ml-2"></i>عرض المشتركين
+                </a>
+                <a href="{{ url_for('admin_add_member') }}" class="block w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center">
+                    <i class="fas fa-plus ml-2"></i>إضافة مشترك جديد
+                </a>
+            </div>
+        </div>
+
+        <!-- Projects Management -->
+        <div class="bg-white rounded-lg p-6 card-shadow">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-project-diagram text-purple-500 ml-2"></i>إدارة المشاريع
+            </h3>
+            <p class="text-gray-600 mb-4">إضافة وتعديل وحذف المشاريع</p>
+            <div class="space-y-2">
+                <a href="{{ url_for('admin_projects') }}" class="block w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-center">
+                    <i class="fas fa-list ml-2"></i>عرض المشاريع
+                </a>
+                <a href="{{ url_for('admin_add_project') }}" class="block w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center">
+                    <i class="fas fa-plus ml-2"></i>إضافة مشروع جديد
+                </a>
+            </div>
+        </div>
+
+        <!-- Payments Management -->
+        <div class="bg-white rounded-lg p-6 card-shadow">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-money-check-alt text-green-500 ml-2"></i>إدارة المدفوعات
+            </h3>
+            <p class="text-gray-600 mb-4">تتبع المدفوعات الشهرية</p>
+            <div class="space-y-2">
+                <a href="{{ url_for('admin_payments') }}" class="block w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center">
+                    <i class="fas fa-calendar-check ml-2"></i>إدارة المدفوعات الشهرية
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Data -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-download text-blue-500 ml-2"></i>تصدير البيانات
+        </h3>
+        <p class="text-gray-600 mb-4">تصدير بيانات المشتركين بصيغ مختلفة</p>
+        <div class="flex space-x-4 space-x-reverse">
+            <a href="{{ url_for('export_excel') }}" class="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                <i class="fas fa-file-excel ml-2"></i>Excel
+            </a>
+            <a href="{{ url_for('export_word') }}" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-file-word ml-2"></i>Word
+            </a>
+            <a href="{{ url_for('export_pdf') }}" class="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                <i class="fas fa-file-pdf ml-2"></i>PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Unpaid Members Alert -->
+    {% if unpaid_members %}
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <h3 class="text-lg font-semibold text-red-600 mb-4">
+            <i class="fas fa-exclamation-triangle ml-2"></i>المشتركين المتأخرين في الدفع
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for member in unpaid_members %}
+            <div class="border border-red-200 rounded-lg p-4 bg-red-50">
+                <h4 class="font-semibold text-gray-800">{{ member.name }}</h4>
+                <p class="text-sm text-red-600">الأشهر المتأخرة: {{ member.unpaid_months|join(', ') }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

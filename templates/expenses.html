@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}المصروفات - جمعية جنوب عزلة الشرف{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-receipt text-red-500 ml-2"></i>المصروفات
+                </h1>
+                <p class="text-gray-600">إجمالي المصروفات: {{ "{:,.0f}".format(total_expenses) }} ريال</p>
+            </div>
+            
+            <!-- Export Buttons -->
+            <div class="flex space-x-2 space-x-reverse no-print">
+                <button onclick="printPage()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-print ml-2"></i>طباعة
+                </button>
+                <a href="{{ url_for('export_expenses_excel') }}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                    <i class="fas fa-file-excel ml-2"></i>Excel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-red-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-receipt text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ expenses|length }}</h3>
+                    <p class="text-gray-600">إجمالي المصروفات</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-orange-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-money-bill-wave text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ "{:,.0f}".format(total_expenses) }}</h3>
+                    <p class="text-gray-600">المبلغ الإجمالي (ريال)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-blue-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-tags text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ expenses_by_category|length }}</h3>
+                    <p class="text-gray-600">عدد الفئات</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+            <div class="flex items-center">
+                <div class="bg-purple-500 text-white p-3 rounded-full ml-4">
+                    <i class="fas fa-calendar text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ expenses|selectattr('date')|selectattr('date', 'ge', (moment().startOf('month')))|list|length if moment else 0 }}</h3>
+                    <p class="text-gray-600">مصروفات هذا الشهر</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expenses by Category -->
+    {% if expenses_by_category %}
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">
+            <i class="fas fa-chart-pie text-blue-500 ml-2"></i>المصروفات حسب الفئة
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for category, amount in expenses_by_category.items() %}
+            <div class="border rounded-lg p-4 hover-scale">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-gray-800">{{ category }}</h3>
+                    <span class="text-lg font-bold text-red-600">{{ "{:,.0f}".format(amount) }} ريال</span>
+                </div>
+                <div class="mt-2">
+                    <div class="bg-gray-200 rounded-full h-2">
+                        <div class="bg-red-500 h-2 rounded-full" style="width: {{ (amount / total_expenses * 100) if total_expenses > 0 else 0 }}%"></div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">{{ "%.1f"|format((amount / total_expenses * 100) if total_expenses > 0 else 0) }}% من الإجمالي</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search and Filter -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8 no-print">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">البحث بالوصف</label>
+                <input type="text" id="searchDescription" placeholder="ابحث عن وصف المصروف..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">فلترة حسب الفئة</label>
+                <select id="filterCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">جميع الفئات</option>
+                    {% for category in expenses_by_category.keys() %}
+                        <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">فلترة حسب التاريخ</label>
+                <select id="filterDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">جميع التواريخ</option>
+                    <option value="today">اليوم</option>
+                    <option value="week">هذا الأسبوع</option>
+                    <option value="month">هذا الشهر</option>
+                    <option value="year">هذا العام</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="bg-white rounded-lg card-shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full table-hover" id="expensesTable">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التاريخ</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الوصف</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الفئة</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for expense in expenses %}
+                    <tr class="expense-row" 
+                        data-description="{{ expense.description }}" 
+                        data-category="{{ expense.category or 'أخرى' }}"
+                        data-date="{{ expense.date.strftime('%Y-%m-%d') }}">
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ expense.date.strftime('%Y/%m/%d') }}
+                        </td>
+                        <td class="px-4 py-4 text-sm text-gray-900">
+                            {{ expense.description }}
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                {{ expense.category or 'أخرى' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-red-600">
+                            {{ "{:,.0f}".format(expense.amount) }} ريال
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="mt-8 bg-white rounded-lg p-6 card-shadow">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-calculator text-green-500 ml-2"></i>ملخص المصروفات
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-red-50 rounded-lg">
+                <h4 class="text-2xl font-bold text-red-600" id="filteredTotal">{{ "{:,.0f}".format(total_expenses) }}</h4>
+                <p class="text-sm text-gray-600">إجمالي المصروفات المعروضة (ريال)</p>
+            </div>
+            <div class="text-center p-4 bg-blue-50 rounded-lg">
+                <h4 class="text-2xl font-bold text-blue-600" id="filteredCount">{{ expenses|length }}</h4>
+                <p class="text-sm text-gray-600">عدد المصروفات المعروضة</p>
+            </div>
+            <div class="text-center p-4 bg-green-50 rounded-lg">
+                <h4 class="text-2xl font-bold text-green-600" id="averageExpense">
+                    {{ "{:,.0f}".format(total_expenses / expenses|length) if expenses|length > 0 else 0 }}
+                </h4>
+                <p class="text-sm text-gray-600">متوسط المصروف (ريال)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchDescription = document.getElementById('searchDescription');
+    const filterCategory = document.getElementById('filterCategory');
+    const filterDate = document.getElementById('filterDate');
+    const expenseRows = document.querySelectorAll('.expense-row');
+
+    function updateSummary() {
+        const visibleRows = Array.from(expenseRows).filter(row => row.style.display !== 'none');
+        const count = visibleRows.length;
+        
+        let total = 0;
+        visibleRows.forEach(row => {
+            const amountText = row.cells[3].textContent.replace(/[^\d]/g, '');
+            total += parseInt(amountText) || 0;
+        });
+
+        document.getElementById('filteredTotal').textContent = total.toLocaleString();
+        document.getElementById('filteredCount').textContent = count;
+        document.getElementById('averageExpense').textContent = count > 0 ? Math.round(total / count).toLocaleString() : '0';
+    }
+
+    function filterTable() {
+        const descriptionFilter = searchDescription.value.toLowerCase();
+        const categoryFilter = filterCategory.value;
+        const dateFilter = filterDate.value;
+        
+        const today = new Date();
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(today.getFullYear(), today.getMonth(), 1);
+        const yearAgo = new Date(today.getFullYear(), 0, 1);
+
+        expenseRows.forEach(row => {
+            const description = row.dataset.description.toLowerCase();
+            const category = row.dataset.category;
+            const expenseDate = new Date(row.dataset.date);
+
+            const descriptionMatch = description.includes(descriptionFilter);
+            const categoryMatch = !categoryFilter || category === categoryFilter;
+            
+            let dateMatch = true;
+            if (dateFilter === 'today') {
+                dateMatch = expenseDate.toDateString() === today.toDateString();
+            } else if (dateFilter === 'week') {
+                dateMatch = expenseDate >= weekAgo;
+            } else if (dateFilter === 'month') {
+                dateMatch = expenseDate >= monthAgo;
+            } else if (dateFilter === 'year') {
+                dateMatch = expenseDate >= yearAgo;
+            }
+
+            if (descriptionMatch && categoryMatch && dateMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        updateSummary();
+    }
+
+    searchDescription.addEventListener('input', filterTable);
+    filterCategory.addEventListener('change', filterTable);
+    filterDate.addEventListener('change', filterTable);
+
+    // Initial summary update
+    updateSummary();
+});
+</script>
+{% endblock %}
+

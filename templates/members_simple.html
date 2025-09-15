@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}المشتركين - جمعية جنوب عزلةالشرف {% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- عنوان الصفحة -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h2 class="card-title text-primary mb-2">
+                        <i class="fas fa-users me-2"></i>المشتركين
+                    </h2>
+                    <p class="text-muted">إجمالي المشتركين: {{ members|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أزرار التصدير -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="fas fa-download me-2"></i>تصدير البيانات
+                    </h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('export_excel') }}" class="btn btn-success">
+                            <i class="fas fa-file-excel me-2"></i>تصدير Excel
+                        </a>
+                        <a href="{{ url_for('export_word') }}" class="btn btn-primary">
+                            <i class="fas fa-file-word me-2"></i>تصدير Word
+                        </a>
+                        <a href="{{ url_for('export_pdf') }}" class="btn btn-danger">
+                            <i class="fas fa-file-pdf me-2"></i>تصدير PDF
+                        </a>
+                        <button onclick="window.print()" class="btn btn-secondary">
+                            <i class="fas fa-print me-2"></i>طباعة
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول المشتركين -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i>قائمة المشتركين
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>رقم العضو</th>
+                                    <th>الاسم</th>
+                                    <th>القرية</th>
+                                    <th>رسوم العضوية</th>
+                                    <th>إجمالي المدفوع</th>
+                                    <th>الأشهر المدفوعة</th>
+                                    <th>الرصيد المتبقي</th>
+                                    <th>حالة الدفع الحالية</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in members %}
+                                <tr>
+                                    <td>{{ member.member_number }}</td>
+                                    <td>{{ member.name }}</td>
+                                    <td>{{ member.village or 'غير محدد' }}</td>
+                                    <td>{{ "{:,}".format(member.membership_fee) }} ريال</td>
+                                    <td>
+                                        {% if member.total_paid > 0 %}
+                                            {{ "{:,}".format(member.total_paid) }} ريال
+                                        {% else %}
+                                            0 ريال
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if member.payments %}
+                                            {{ member.payments|length }} شهر
+                                        {% else %}
+                                            0 شهر
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set remaining_balance = (member.membership_fee * 12) - (member.total_paid or 0) %}
+                                        {% if remaining_balance > 0 %}
+                                            <span class="text-warning">{{ "{:,}".format(remaining_balance) }} ريال</span>
+                                        {% else %}
+                                            <span class="text-success">مكتمل</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-info me-1"></i>غير متوفر
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header, .navbar, .footer {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .table {
+        font-size: 12px;
+    }
+}
+</style>
+{% endblock %}
+

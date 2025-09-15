@@ -1,0 +1,43 @@
+<div id="addExpenseModal" class="modal fade" tabindex="-1" aria-labelledby="addExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addExpenseModalLabel">إضافة مصروف جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addExpenseForm" method="POST" action="{{ url_for('add_expense') }}">
+                    <div class="mb-3">
+                        <label for="expenseDescription" class="form-label">وصف المصروف</label>
+                        <input type="text" class="form-control" id="expenseDescription" name="description" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expenseAmount" class="form-label">المبلغ (ريال)</label>
+                        <input type="number" class="form-control" id="expenseAmount" name="amount" min="0" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expenseCategory" class="form-label">الفئة</label>
+                        <select class="form-select" id="expenseCategory" name="category">
+                            <option value="">اختر الفئة</option>
+                            <option value="صيانة">صيانة</option>
+                            <option value="وقود">وقود</option>
+                            <option value="مواد">مواد</option>
+                            <option value="أجور">أجور</option>
+                            <option value="مكتب">مكتب</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expenseDate" class="form-label">التاريخ</label>
+                        <input type="date" class="form-control" id="expenseDate" name="date" value="{{ today_date }}">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">حفظ المصروف</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if action == 'add' %}إضافة مشروع جديد{% else %}تعديل مشروع{% endif %} - جمعية جنوب عزلةالشرف 
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-project-diagram text-purple-500 ml-2"></i>
+                    {% if action == 'add' %}إضافة مشروع جديد{% else %}تعديل مشروع{% endif %}
+                </h1>
+                <p class="text-gray-600">
+                    {% if action == 'add' %}أدخل بيانات المشروع الجديد{% else %}تعديل بيانات المشروع{% endif %}
+                </p>
+            </div>
+            
+            <a href="{{ url_for('admin_projects') }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-arrow-right ml-2"></i>العودة لقائمة المشاريع
+            </a>
+        </div>
+    </div>
+
+    <!-- Project Form -->
+    <div class="bg-white rounded-lg p-6 card-shadow">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+            <!-- Project Title -->
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                    عنوان المشروع <span class="text-red-500">*</span>
+                </label>
+                <input type="text" 
+                       id="title" 
+                       name="title" 
+                       value="{{ project.title if project else '' }}"
+                       required 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       placeholder="أدخل عنوان المشروع">
+            </div>
+
+            <!-- Project Description -->
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    وصف المشروع <span class="text-red-500">*</span>
+                </label>
+                <textarea id="description" 
+                          name="description" 
+                          rows="5"
+                          required 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="أدخل وصف تفصيلي للمشروع">{{ project.description if project else '' }}</textarea>
+            </div>
+
+            <!-- Project Cost -->
+            <div>
+                <label for="cost" class="block text-sm font-medium text-gray-700 mb-2">
+                    تكلفة المشروع (ريال) <span class="text-red-500">*</span>
+                </label>
+                <input type="number" 
+                       id="cost" 
+                       name="cost" 
+                       value="{{ project.cost if project else '' }}"
+                       step="0.01"
+                       required 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       placeholder="أدخل تكلفة المشروع">
+            </div>
+
+            <!-- Project Image -->
+            <div>
+                <label for="project_image" class="block text-sm font-medium text-gray-700 mb-2">
+                    صورة المشروع
+                </label>
+                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-purple-400 transition-colors">
+                    <div class="space-y-1 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="flex text-sm text-gray-600">
+                            <label for="project_image" class="relative cursor-pointer bg-white rounded-md font-medium text-purple-600 hover:text-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500">
+                                <span>اختر صورة</span>
+                                <input id="project_image" name="project_image" type="file" class="sr-only" accept="image/*" onchange="previewImage(this)">
+                            </label>
+                            <p class="pl-1">أو اسحب الصورة هنا</p>
+                        </div>
+                        <p class="text-xs text-gray-500">PNG, JPG, GIF حتى 10MB</p>
+                    </div>
+                </div>
+                
+                <!-- Image Preview -->
+                <div id="imagePreview" class="mt-4 hidden">
+                    <img id="previewImg" src="" alt="معاينة الصورة" class="max-w-xs h-auto rounded-lg shadow-md">
+                    <button type="button" onclick="removeImage()" class="mt-2 text-red-600 hover:text-red-800 text-sm">
+                        <i class="fas fa-trash ml-1"></i>إزالة الصورة
+                    </button>
+                </div>
+                
+                <!-- Current Image (for edit mode) -->
+                {% if project and project.image_path %}
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600 mb-2">الصورة الحالية:</p>
+                    <img src="{{ url_for('static', filename='uploads/' + project.image_path.split('/')[-1]) }}" 
+                         alt="صورة المشروع الحالية" 
+                         class="max-w-xs h-auto rounded-lg shadow-md">
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-4 space-x-reverse pt-6 border-t">
+                <a href="{{ url_for('admin_projects') }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                    إلغاء
+                </a>
+                <button type="submit" 
+                        class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                    <i class="fas fa-save ml-2"></i>
+                    {% if action == 'add' %}إضافة المشروع{% else %}حفظ التغييرات{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Help Section -->
+    <div class="bg-purple-50 rounded-lg p-4 mt-6">
+        <h3 class="text-lg font-semibold text-purple-800 mb-2">
+            <i class="fas fa-info-circle ml-2"></i>معلومات مهمة
+        </h3>
+        <ul class="text-purple-700 space-y-1">
+            <li>• اختر عنواناً واضحاً ومختصراً للمشروع</li>
+            <li>• اكتب وصفاً تفصيلياً يوضح أهداف وفوائد المشروع</li>
+            <li>• أدخل التكلفة الإجمالية المتوقعة للمشروع</li>
+            <li>• يمكن إضافة صورة توضيحية للمشروع (اختيارية)</li>
+            <li>• الصور المدعومة: PNG, JPG, GIF بحد أقصى 10MB</li>
+            <li>• يمكن تعديل بيانات المشروع في أي وقت لاحق</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // التحقق من نوع الملف
+        if (!file.type.match('image.*')) {
+            alert('يرجى اختيار ملف صورة صحيح');
+            input.value = '';
+            return;
+        }
+        
+        // التحقق من حجم الملف (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('حجم الصورة كبير جداً. يرجى اختيار صورة أصغر من 10MB');
+            input.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removeImage() {
+    document.getElementById('project_image').value = '';
+    document.getElementById('imagePreview').classList.add('hidden');
+    document.getElementById('previewImg').src = '';
+}
+
+// Drag and drop functionality
+const dropZone = document.querySelector('.border-dashed');
+
+dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    dropZone.classList.add('border-purple-400', 'bg-purple-50');
+});
+
+dropZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    dropZone.classList.remove('border-purple-400', 'bg-purple-50');
+});
+
+dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropZone.classList.remove('border-purple-400', 'bg-purple-50');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        document.getElementById('project_image').files = files;
+        previewImage(document.getElementById('project_image'));
+    }
+});
+</script>
+{% endblock %}
+
